@@ -1,0 +1,86 @@
+[
+  {
+    "id": 1,
+    "name": "Жим штанги лёжа",
+    "file": "gifs/01_barbell_bench_press.gif",
+    "verified_technique": false,
+    "source": "user-uploaded 12 chest anatomy GIF archive"
+  },
+  {
+    "id": 2,
+    "name": "Жим гантелей лёжа",
+    "file": "gifs/02_dumbbell_bench_press.gif",
+    "verified_technique": false,
+    "source": "user-uploaded 12 chest anatomy GIF archive"
+  },
+  {
+    "id": 3,
+    "name": "Жим штанги на наклонной скамье",
+    "file": "gifs/03_incline_barbell_press.gif",
+    "verified_technique": false,
+    "source": "user-uploaded 12 chest anatomy GIF archive"
+  },
+  {
+    "id": 4,
+    "name": "Жим гантелей на наклонной скамье",
+    "file": "gifs/04_incline_dumbbell_press.gif",
+    "verified_technique": false,
+    "source": "user-uploaded 12 chest anatomy GIF archive"
+  },
+  {
+    "id": 5,
+    "name": "Жим гантелей с отрицательным наклоном",
+    "file": "gifs/05_decline_dumbbell_press.gif",
+    "verified_technique": false,
+    "source": "user-uploaded 12 chest anatomy GIF archive"
+  },
+  {
+    "id": 6,
+    "name": "Жим в грудном тренажёре",
+    "file": "gifs/06_chest_press_machine.gif",
+    "verified_technique": false,
+    "source": "user-uploaded 12 chest anatomy GIF archive"
+  },
+  {
+    "id": 7,
+    "name": "Отжимания на брусьях",
+    "file": "gifs/07_parallel_bar_dips.gif",
+    "verified_technique": false,
+    "source": "user-uploaded 12 chest anatomy GIF archive"
+  },
+  {
+    "id": 8,
+    "name": "Сведение рук в тренажёре «бабочка»",
+    "file": "gifs/08_pec_deck.gif",
+    "verified_technique": false,
+    "source": "user-uploaded 12 chest anatomy GIF archive"
+  },
+  {
+    "id": 9,
+    "name": "Сведение рук в кроссовере",
+    "file": "gifs/09_cable_crossover.gif",
+    "verified_technique": false,
+    "source": "user-uploaded 12 chest anatomy GIF archive"
+  },
+  {
+    "id": 10,
+    "name": "Сведение рук в кроссовере снизу вверх",
+    "file": "gifs/10_low_to_high_cable_fly.gif",
+    "verified_technique": false,
+    "source": "user-uploaded 12 chest anatomy GIF archive"
+  },
+  {
+    "id": 11,
+    "name": "Разведение гантелей лёжа",
+    "file": "gifs/11_flat_dumbbell_fly.gif",
+    "verified_technique": false,
+    "source": "user-uploaded 12 chest anatomy GIF archive"
+  },
+  {
+    "id": 12,
+    "name": "Отжимания от пола",
+    "file": "gifs/12_pushups.gif",
+    "verified_technique": false,
+    "source": "user-uploaded 12 chest anatomy GIF archive"
+  }
+]

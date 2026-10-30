@@ -154,7 +154,22 @@ return `<div class="dash-grid">
 <div class="stats-grid"><div class="stat-card"><div class="stat-upper"><span class="stat-label">Всего тренировок</span><span class="stat-icon">${icon('dumbbell',17)}</span></div><div><span class="stat-number">${data.sessions.length}</span><span class="stat-unit">занятий</span></div></div><div class="stat-card"><div class="stat-upper"><span class="stat-label">Выполнено подходов</span><span class="stat-icon">${icon('target',17)}</span></div><div><span class="stat-number">${totalSets()}</span><span class="stat-unit">подходов</span></div></div><div class="stat-card"><div class="stat-upper"><span class="stat-label">Время в зале</span><span class="stat-icon">${icon('clock',17)}</span></div><div><span class="stat-number">${Math.round(totalDuration()/60)}</span><span class="stat-unit">мин</span></div></div><div class="stat-card"><div class="stat-upper"><span class="stat-label">Этот месяц</span><span class="stat-icon">${icon('chart',17)}</span></div><div><span class="stat-number">${monthlyCount}</span><span class="stat-unit">тренировок</span></div></div></div>
 <div class="lower-grid"><section class="panel">${sectionHead('Активность за неделю','Отмечены дни с сохранёнными тренировками','Календарь','calendar')}<div class="week-days">${weeks.map(d=>{const key=isoLocal(d),done=completedDays.has(key),today=key===TODAY();return `<div class="day-pill"><strong>${d.toLocaleDateString('ru-RU',{weekday:'short'}).replace('.','')}</strong><div class="day-circle ${done?'done':''} ${today?'today':''}">${done?icon('check',16):d.getDate()}</div></div>`;}).join('')}</div><div class="panel-note">${icon('info',16)} ${data.sessions.length?'Отмеченные дни уже сохранены в твоей истории.':'Здесь появятся твои занятия после сохранения первой тренировки.'}</div></section><section class="panel">${sectionHead('Быстрый старт','Выбирай подходящую тренировку','Все планы','programs')}<div class="program-list-mini">${PROGRAMS.slice(0,2).map(p=>`<button class="program-mini" data-action="start" data-id="${p.id}"><span class="program-mini-icon">${icon(p.icon,18)}</span><span><strong>${p.title}</strong><small>${p.exercises.length} упражнений · ~${p.time} мин</small></span>${icon('chevronRight',17)}</button>`).join('')}</div></section></div>`;}
 
-const TECHNIQUE_EXERCISES=[...new Set(['Жим на наклонной скамье',...PROGRAMS.flatMap(p=>p.exercises.map(e=>e[0]))])];
+// Bundled original user-supplied GIFs, available offline inside the Android APK.
+const BUILTIN_TECHNIQUE_ASSETS=Object.freeze({
+  "Жим штанги лёжа": "gifs/01_barbell_bench_press.gif",
+  "Жим гантелей лёжа": "gifs/02_dumbbell_bench_press.gif",
+  "Жим штанги на наклонной скамье": "gifs/03_incline_barbell_press.gif",
+  "Жим гантелей на наклонной скамье": "gifs/04_incline_dumbbell_press.gif",
+  "Жим гантелей с отрицательным наклоном": "gifs/05_decline_dumbbell_press.gif",
+  "Жим в грудном тренажёре": "gifs/06_chest_press_machine.gif",
+  "Отжимания на брусьях": "gifs/07_parallel_bar_dips.gif",
+  "Сведение рук в тренажёре «бабочка»": "gifs/08_pec_deck.gif",
+  "Сведение рук в кроссовере": "gifs/09_cable_crossover.gif",
+  "Сведение рук в кроссовере снизу вверх": "gifs/10_low_to_high_cable_fly.gif",
+  "Разведение гантелей лёжа": "gifs/11_flat_dumbbell_fly.gif",
+  "Отжимания от пола": "gifs/12_pushups.gif"
+});
+const TECHNIQUE_EXERCISES=[...new Set([...Object.keys(BUILTIN_TECHNIQUE_ASSETS),...PROGRAMS.flatMap(p=>p.exercises.map(e=>e[0]))])];
 let selectedTechnique=TECHNIQUE_EXERCISES[0];
 const techniqueUrls=Object.create(null);
 const techniqueLoading=new Set();
@@ -203,7 +218,7 @@ async function techniqueUpload(file){
  }catch(e){toast('Не удалось сохранить GIF на устройстве');}
 }
 function renderTechnique(){
- const name=selectedTechnique,src=techniqueUrls[name],isIncline=name===TECHNIQUE_EXERCISES[0];
+ const name=selectedTechnique,src=techniqueUrls[name]||BUILTIN_TECHNIQUE_ASSETS[name],isIncline=name.includes('наклонной скамье');
  const title=escapeHTML(name);
  const fallback='<div class="technique-placeholder-top"><strong>GYMTRACK</strong><h3>'+title+'</h3></div>'+
  '<div class="technique-placeholder-mid">'+icon('dumbbell',90)+'<span>Добавь GIF движения</span></div>'+
@@ -211,17 +226,17 @@ function renderTechnique(){
  (isIncline?'Опускаем штангу':'Исходное положение')+'</span><strong>'+(isIncline?'ВНИЗ':'ДВИЖЕНИЕ')+
  '</strong></div><div class="technique-progress"><b></b></div></div>';
  const image=src?'<img class="technique-full-gif" src="'+src+'" alt="Анимация упражнения: '+title+'">':fallback;
- return '<div class="technique-intro"><h2>Упражнения — в движении.</h2><p>Белый фон, крупная анимация, название сверху и подсказка снизу — как в твоём образце. Для каждого упражнения можно загрузить свою GIF.</p></div>'+
+ return '<div class="technique-intro"><h2>Упражнения — в движении.</h2><p>12 анимированных грудных упражнений уже встроены и работают офлайн. Выбирай упражнение справа, чтобы увидеть движение. Свои GIF тоже можно добавлять.</p></div>'+
  '<div class="technique-layout"><div class="technique-page-card"><div class="technique-display">'+image+'</div></div>'+
- '<div class="technique-panel"><h3>Выбери упражнение</h3><p>Готовые GIF хранятся локально на твоём устройстве и будут доступны без интернета.</p>'+
- '<div class="technique-options">'+TECHNIQUE_EXERCISES.map(x=>'<button class="technique-option '+(x===name?'active':'')+'" data-action="technique-select" data-id="'+escapeHTML(x)+'">'+escapeHTML(x)+(techniqueUrls[x]?' ✓':'')+'</button>').join('')+'</div>'+
+ '<div class="technique-panel"><h3>Выбери упражнение</h3><p>12 GIF из твоего архива встроены в приложение и работают без интернета. Другие упражнения можно дополнить своими GIF.</p>'+
+ '<div class="technique-options">'+TECHNIQUE_EXERCISES.map(x=>'<button class="technique-option '+(x===name?'active':'')+'" data-action="technique-select" data-id="'+escapeHTML(x)+'">'+escapeHTML(x)+(techniqueUrls[x]?' · СВОЯ GIF':BUILTIN_TECHNIQUE_ASSETS[x]?' · GIF':'')+'</button>').join('')+'</div>'+
  '<label class="technique-upload" for="techniqueGif">'+icon('upload',16)+'&nbsp; Загрузить GIF для упражнения</label>'+
  '<input id="techniqueGif" type="file" accept="image/gif,.gif" hidden>'+
- '<div class="technique-tip">Для уже оформленной GIF, как на образце, загружай её целиком: рамки и подписи останутся внутри анимации. Если GIF ещё нет, показывается шаблон.</div>'+
+ '<div class="technique-tip">Анимации из архива показывают основные фазы движения. Это иллюстрации, а не проверенная тренером техника. Загруженная своя GIF заменит встроенную для выбранного упражнения.</div>'+
  '<button class="btn btn-subtle" data-nav="programs" style="width:100%;margin-top:16px">← К программам</button></div></div>';
 }
 
-function renderPrograms(){return `<div class="content-intro"><h2>Найди свой ритм.</h2><p>Готовые планы можно начать сразу или добавить в календарь. Подходы и повторения редактируются во время тренировки.</p></div><button class="btn btn-subtle" data-nav="technique" style="margin-bottom:20px">${icon("play",16)} Анимации и техника упражнений</button><div class="programs-grid">${PROGRAMS.map(p=>`<article class="program-card"><div class="program-top"><span class="program-symbol">${icon(p.icon,27)}</span><span class="program-badge">${p.tag}</span></div><h3>${escapeHTML(p.title)}</h3><p>${escapeHTML(p.subtitle)}</p><div class="program-detail"><span>${icon('clock',15)} ~${p.time} мин</span><span>${icon('layers',15)} ${p.exercises.length} упражнений</span></div><ul class="program-exercises">${p.exercises.map(e=>`<li>${escapeHTML(e[0])}</li>`).join('')}</ul><div class="program-bottom"><button class="btn btn-primary" data-action="start" data-id="${p.id}">${icon('play',15)} Начать</button><button class="btn btn-subtle btn-icon" data-action="plan-program" data-id="${p.id}" title="Запланировать" aria-label="Запланировать ${escapeHTML(p.title)}">${icon('calendarPlus',17)}</button></div></article>`).join('')}</div><div class="notice">${icon('info',16)} Программы — примеры, а не обязательная нагрузка. Подбирай упражнения с учётом своего опыта и техники; между тренировками оставляй время для восстановления.</div>`;}
+function renderPrograms(){return `<div class="content-intro"><h2>Найди свой ритм.</h2><p>Готовые планы можно начать сразу или добавить в календарь. Подходы и повторения редактируются во время тренировки.</p></div><button class="btn btn-subtle" data-nav="technique" style="margin-bottom:20px">${icon("play",16)} Анимации упражнений (12 GIF)</button><div class="programs-grid">${PROGRAMS.map(p=>`<article class="program-card"><div class="program-top"><span class="program-symbol">${icon(p.icon,27)}</span><span class="program-badge">${p.tag}</span></div><h3>${escapeHTML(p.title)}</h3><p>${escapeHTML(p.subtitle)}</p><div class="program-detail"><span>${icon('clock',15)} ~${p.time} мин</span><span>${icon('layers',15)} ${p.exercises.length} упражнений</span></div><ul class="program-exercises">${p.exercises.map(e=>`<li>${escapeHTML(e[0])}</li>`).join('')}</ul><div class="program-bottom"><button class="btn btn-primary" data-action="start" data-id="${p.id}">${icon('play',15)} Начать</button><button class="btn btn-subtle btn-icon" data-action="plan-program" data-id="${p.id}" title="Запланировать" aria-label="Запланировать ${escapeHTML(p.title)}">${icon('calendarPlus',17)}</button></div></article>`).join('')}</div><div class="notice">${icon('info',16)} Программы — примеры, а не обязательная нагрузка. Подбирай упражнения с учётом своего опыта и техники; между тренировками оставляй время для восстановления.</div>`;}
 function makeSession(id){const p=programme(id);return{id:uid(),programId:p.id,name:p.title,date:TODAY(),startedAt:Date.now(),exercises:p.exercises.map(e=>({id:uid(),name:e[0],sets:Array.from({length:e[1]},()=>({id:uid(),reps:e[2],weight:0,done:false}))}))};}
 function startWorkout(id){if(data.active){if(!confirm('Сейчас уже идёт тренировка. Завершить её без сохранения и начать новую?')){navigate('workout');return;}data.active=null;}data.active=makeSession(id);data.defaultProgram=id;persist();navigate('workout');toast('Тренировка началась!',true);}
 function renderWorkout(){if(!data.active)return `<div class="workout-empty"><div class="empty-icon">${icon('dumbbell',38)}</div><h2>Готов к тренировке?</h2><p>Выбери программу, отмечай завершённые подходы и запускай таймер отдыха. Записи сохранятся в историю, когда закончишь занятие.</p><div class="quick-cards">${PROGRAMS.map(p=>`<button class="quick-card" data-action="start" data-id="${p.id}">${icon(p.icon,25)}${p.title}</button>`).join('')}</div></div>`;
