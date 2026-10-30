@@ -17,6 +17,41 @@
 
 .top-avatar{border:1px solid #54382d;cursor:pointer}.top-avatar:hover{background:#403027}.mobile-nav button{min-width:0}
 
+
+/* Clean exercise-animation cards: deliberately light against the dark application. */
+.technique-intro{max-width:680px;margin:0 0 22px}
+.technique-intro h2{font-size:clamp(23px,3vw,30px);margin:0 0 10px}
+.technique-intro p{color:#a7aab3;line-height:1.65}
+.technique-layout{display:grid;grid-template-columns:minmax(0,520px) minmax(230px,1fr);gap:24px;align-items:start}
+.technique-page-card{max-width:520px;width:100%;background:#fff;border-radius:24px;padding:14px;box-shadow:0 22px 60px rgba(0,0,0,.19)}
+.technique-display{width:100%;aspect-ratio:480 / 688;background:#fff;border-radius:16px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.technique-full-gif{display:block;width:100%;height:100%;object-fit:contain;background:#fff}
+.technique-placeholder-top,.technique-placeholder-bottom{border:1.5px solid #dedee3;background:#fcfcfd;border-radius:18px;padding:17px 16px;text-align:left;color:#19191d}
+.technique-placeholder-top{min-height:105px}
+.technique-placeholder-top strong{color:#f15d34;font-size:19px;letter-spacing:.025em;font-weight:900;display:block}
+.technique-placeholder-top h3{font-size:clamp(17px,2.7vw,24px);line-height:1.24;margin:9px 0 0;font-weight:800}
+.technique-placeholder-mid{flex:1;min-height:180px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#6e707a;gap:16px}
+.technique-placeholder-mid svg{color:#e0a38d}
+.technique-placeholder-mid span{font-weight:600;font-size:14px}
+.technique-placeholder-bottom{min-height:68px;padding:12px 14px}
+.technique-phase{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.technique-phase span{font-size:clamp(13px,2vw,19px)}
+.technique-phase strong{font-size:14px;color:#f15d34}
+.technique-progress{height:7px;border-radius:8px;background:#e1e1e4;margin-top:11px;overflow:hidden}
+.technique-progress b{display:block;width:45%;height:100%;background:#f15d34;animation:technique-bar 4.8s ease-in-out infinite alternate}
+@keyframes technique-bar{0%{transform:translateX(-100%)}100%{transform:translateX(230%)}}
+.technique-panel{background:#191c22;border:1px solid #30343c;border-radius:19px;padding:20px}
+.technique-panel h3{font-size:17px;margin:0 0 12px}
+.technique-panel p{color:#a7aab3;font-size:13px;line-height:1.6}
+.technique-options{max-height:340px;overflow:auto;display:grid;gap:7px;margin:17px 0}
+.technique-option{width:100%;padding:12px;text-align:left;color:#dbdee4;background:#20242b;border:1px solid #343941;border-radius:10px;cursor:pointer}
+.technique-option.active{color:#fff;border-color:#fa7445;background:#34251f}
+.technique-upload{display:inline-flex;align-items:center;justify-content:center;padding:12px 16px;background:#f15d34;color:white!important;font-weight:750;border-radius:10px;cursor:pointer;width:100%;margin-top:8px}
+.technique-tip{font-size:12px;line-height:1.5;color:#abb0b8;margin-top:10px}
+@media(max-width:900px){.technique-layout{grid-template-columns:1fr}.technique-page-card{margin:auto}.technique-panel{max-width:520px;width:100%;margin:auto}}
+@media(max-width:500px){.technique-page-card{padding:8px;border-radius:18px}.technique-placeholder-top{padding:14px}.technique-placeholder-bottom{padding:10px}}
+@media(prefers-reduced-motion:reduce){.technique-progress b{animation:none;width:65%}}
+
 </style>
 </head>
 <body>
@@ -90,7 +125,7 @@ const PROGRAMS=[
  {id:'lower',tag:'НИЗ ТЕЛА',title:'Низ тела',subtitle:'Ноги и ягодичные мышцы, с акцентом на технику.',time:45,icon:'activity',exercises:[['Приседания с гантелью',3,8],['Румынская тяга с гантелями',2,10],['Выпады назад',2,8],['Подъёмы на носки',2,12]]}
 ];
 const NAV=[{id:'home',label:'Главная',icon:'home'},{id:'programs',label:'Программы',icon:'dumbbell'},{id:'workout',label:'Тренировка',icon:'activity'},{id:'calendar',label:'Календарь',icon:'calendar'},{id:'history',label:'История',icon:'history'},{id:'music',label:'Музыка',icon:'music'}];
-const PAGE_META={home:['ТВОЁ ПРОСТРАНСТВО','Главная'],programs:['ТВОЙ ПЛАН','Программы тренировок'],workout:['ВРЕМЯ ТРЕНИРОВАТЬСЯ','Тренировка'],calendar:['ПЛАНИРОВАНИЕ','Календарь'],history:['ТВОЙ ПУТЬ','История результатов'],music:['ТРЕНИРУЙСЯ В РИТМЕ','Музыка'],settings:['УПРАВЛЕНИЕ','Настройки']};
+const PAGE_META={home:['ТВОЁ ПРОСТРАНСТВО','Главная'],programs:['ТВОЙ ПЛАН','Программы тренировок'],workout:['ВРЕМЯ ТРЕНИРОВАТЬСЯ','Тренировка'],calendar:['ПЛАНИРОВАНИЕ','Календарь'],history:['ТВОЙ ПУТЬ','История результатов'],music:['ТРЕНИРУЙСЯ В РИТМЕ','Музыка'],technique:['ТЕХНИКА ДВИЖЕНИЯ','Анимации упражнений'],settings:['УПРАВЛЕНИЕ','Настройки']};
 const STORAGE_KEY='gymtrack_v1';
 function emptyData(){return{sessions:[],plans:[],active:null,defaultProgram:'full'};}
 function loadData(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(x&&Array.isArray(x.sessions)&&Array.isArray(x.plans))return{...emptyData(),...x};}catch(e){console.warn('Не удалось прочитать локальные записи',e);}return emptyData();}
@@ -110,7 +145,7 @@ function renderNav(){document.getElementById('sideNav').innerHTML=NAV.map(i=>nav
 function renderHeader(){const [k,title]=PAGE_META[currentPage];document.getElementById('pageCategory').textContent=k;document.getElementById('pageTitle').textContent=title;document.getElementById('todayLabel').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});updateTopTimer();}
 function updateTopTimer(){const el=document.getElementById('topTimer');if(restRunning){el.hidden=false;el.innerHTML=icon('clock',15)+formattedTime(restRemaining);}else{el.hidden=true;el.innerHTML='';}}
 function sectionHead(title,subtitle,link,action){return `<div class="section-head"><div><h2 class="section-title">${escapeHTML(title)}</h2>${subtitle?`<div class="section-kicker">${escapeHTML(subtitle)}</div>`:''}</div>${link?`<button class="section-link" data-nav="${action}">${escapeHTML(link)} ${icon('arrowRight',15)}</button>`:''}</div>`;}
-function render(){renderNav();renderHeader();document.getElementById('content').innerHTML=({home:renderHome,programs:renderPrograms,workout:renderWorkout,calendar:renderCalendar,history:renderHistory,music:renderMusic,settings:renderSettings}[currentPage])();if(currentPage==='music'){if(IS_ANDROID_MUSIC)updateNativeMusicStatus(false);else updateAudioUI();}}
+function render(){renderNav();renderHeader();document.getElementById('content').innerHTML=({home:renderHome,programs:renderPrograms,workout:renderWorkout,calendar:renderCalendar,history:renderHistory,music:renderMusic,technique:renderTechnique,settings:renderSettings}[currentPage])();if(currentPage==='music'){if(IS_ANDROID_MUSIC)updateNativeMusicStatus(false);else updateAudioUI();}if(currentPage==='technique')techniqueLoad(selectedTechnique);}
 function getNextPlan(){return [...data.plans].filter(p=>p.date>=TODAY()).sort((a,b)=>a.date.localeCompare(b.date))[0];}
 function renderHome(){const upcoming=getNextPlan(),monday=getWeekMonday(new Date()),weeks=[...Array(7)].map((_,i)=>addDays(monday,i)),completedDays=new Set(data.sessions.map(s=>s.date)),monthlyCount=data.sessions.filter(s=>s.date.slice(0,7)===TODAY().slice(0,7)).length;
 return `<div class="dash-grid">
@@ -118,12 +153,80 @@ return `<div class="dash-grid">
 <section class="next-card"><div class="card-micro">${icon('calendar',15)} БЛИЖАЙШИЙ ПЛАН</div><h3>${upcoming?escapeHTML(programme(upcoming.programId).title):'Твоя следующая<br/>тренировка'}</h3><p>${upcoming?`Запланировано на ${formattedDate(upcoming.date,{weekday:'long',day:'numeric',month:'long'})}. Можно изменить план в календаре.`:'В календаре пока нет запланированных тренировок. Выбирай удобный день и программу.'}</p><div class="next-card-bottom"><div class="dots"><span></span><span></span><span></span><span></span></div><button class="btn btn-subtle full-btn" data-nav="calendar">${icon('calendarPlus',16)} Открыть календарь ${icon('arrowRight',14)}</button></div></section></div>
 <div class="stats-grid"><div class="stat-card"><div class="stat-upper"><span class="stat-label">Всего тренировок</span><span class="stat-icon">${icon('dumbbell',17)}</span></div><div><span class="stat-number">${data.sessions.length}</span><span class="stat-unit">занятий</span></div></div><div class="stat-card"><div class="stat-upper"><span class="stat-label">Выполнено подходов</span><span class="stat-icon">${icon('target',17)}</span></div><div><span class="stat-number">${totalSets()}</span><span class="stat-unit">подходов</span></div></div><div class="stat-card"><div class="stat-upper"><span class="stat-label">Время в зале</span><span class="stat-icon">${icon('clock',17)}</span></div><div><span class="stat-number">${Math.round(totalDuration()/60)}</span><span class="stat-unit">мин</span></div></div><div class="stat-card"><div class="stat-upper"><span class="stat-label">Этот месяц</span><span class="stat-icon">${icon('chart',17)}</span></div><div><span class="stat-number">${monthlyCount}</span><span class="stat-unit">тренировок</span></div></div></div>
 <div class="lower-grid"><section class="panel">${sectionHead('Активность за неделю','Отмечены дни с сохранёнными тренировками','Календарь','calendar')}<div class="week-days">${weeks.map(d=>{const key=isoLocal(d),done=completedDays.has(key),today=key===TODAY();return `<div class="day-pill"><strong>${d.toLocaleDateString('ru-RU',{weekday:'short'}).replace('.','')}</strong><div class="day-circle ${done?'done':''} ${today?'today':''}">${done?icon('check',16):d.getDate()}</div></div>`;}).join('')}</div><div class="panel-note">${icon('info',16)} ${data.sessions.length?'Отмеченные дни уже сохранены в твоей истории.':'Здесь появятся твои занятия после сохранения первой тренировки.'}</div></section><section class="panel">${sectionHead('Быстрый старт','Выбирай подходящую тренировку','Все планы','programs')}<div class="program-list-mini">${PROGRAMS.slice(0,2).map(p=>`<button class="program-mini" data-action="start" data-id="${p.id}"><span class="program-mini-icon">${icon(p.icon,18)}</span><span><strong>${p.title}</strong><small>${p.exercises.length} упражнений · ~${p.time} мин</small></span>${icon('chevronRight',17)}</button>`).join('')}</div></section></div>`;}
-function renderPrograms(){return `<div class="content-intro"><h2>Найди свой ритм.</h2><p>Готовые планы можно начать сразу или добавить в календарь. Подходы и повторения редактируются во время тренировки.</p></div><div class="programs-grid">${PROGRAMS.map(p=>`<article class="program-card"><div class="program-top"><span class="program-symbol">${icon(p.icon,27)}</span><span class="program-badge">${p.tag}</span></div><h3>${escapeHTML(p.title)}</h3><p>${escapeHTML(p.subtitle)}</p><div class="program-detail"><span>${icon('clock',15)} ~${p.time} мин</span><span>${icon('layers',15)} ${p.exercises.length} упражнений</span></div><ul class="program-exercises">${p.exercises.map(e=>`<li>${escapeHTML(e[0])}</li>`).join('')}</ul><div class="program-bottom"><button class="btn btn-primary" data-action="start" data-id="${p.id}">${icon('play',15)} Начать</button><button class="btn btn-subtle btn-icon" data-action="plan-program" data-id="${p.id}" title="Запланировать" aria-label="Запланировать ${escapeHTML(p.title)}">${icon('calendarPlus',17)}</button></div></article>`).join('')}</div><div class="notice">${icon('info',16)} Программы — примеры, а не обязательная нагрузка. Подбирай упражнения с учётом своего опыта и техники; между тренировками оставляй время для восстановления.</div>`;}
+
+const TECHNIQUE_EXERCISES=[...new Set(['Жим на наклонной скамье',...PROGRAMS.flatMap(p=>p.exercises.map(e=>e[0]))])];
+let selectedTechnique=TECHNIQUE_EXERCISES[0];
+const techniqueUrls=Object.create(null);
+const techniqueLoading=new Set();
+let techniqueDatabasePromise=null;
+function techniqueDb(){
+ if(!('indexedDB' in window))return Promise.reject(new Error('Нет IndexedDB'));
+ if(!techniqueDatabasePromise)techniqueDatabasePromise=new Promise((resolve,reject)=>{
+  const request=indexedDB.open('gymtrack_technique_files',1);
+  request.onupgradeneeded=()=>request.result.createObjectStore('gifs');
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error||new Error('База недоступна'));
+ });
+ return techniqueDatabasePromise;
+}
+async function techniqueLoad(name){
+ if(techniqueLoading.has(name)||techniqueUrls[name])return;
+ techniqueLoading.add(name);
+ try{
+  const db=await techniqueDb();
+  const blob=await new Promise((resolve,reject)=>{
+   const request=db.transaction('gifs','readonly').objectStore('gifs').get(name);
+   request.onsuccess=()=>resolve(request.result);
+   request.onerror=()=>reject(request.error);
+  });
+  if(blob instanceof Blob){
+   techniqueUrls[name]=URL.createObjectURL(blob);
+   if(currentPage==='technique'&&selectedTechnique===name)render();
+  }
+ }catch(e){console.warn('Не удалось прочитать GIF',e);}
+}
+async function techniqueUpload(file){
+ if(!file)return;
+ if(file.type!=='image/gif'&&!/\.gif$/i.test(file.name)){toast('Нужен анимированный файл GIF');return;}
+ if(file.size>15*1024*1024){toast('GIF должен быть меньше 15 МБ');return;}
+ try{
+  const db=await techniqueDb();
+  await new Promise((resolve,reject)=>{
+   const transaction=db.transaction('gifs','readwrite');
+   transaction.objectStore('gifs').put(file,selectedTechnique);
+   transaction.oncomplete=resolve;transaction.onerror=()=>reject(transaction.error);
+  });
+  if(techniqueUrls[selectedTechnique])URL.revokeObjectURL(techniqueUrls[selectedTechnique]);
+  techniqueUrls[selectedTechnique]=URL.createObjectURL(file);
+  render();
+  toast('Анимация сохранена для этого упражнения',true);
+ }catch(e){toast('Не удалось сохранить GIF на устройстве');}
+}
+function renderTechnique(){
+ const name=selectedTechnique,src=techniqueUrls[name],isIncline=name===TECHNIQUE_EXERCISES[0];
+ const title=escapeHTML(name);
+ const fallback='<div class="technique-placeholder-top"><strong>GYMTRACK</strong><h3>'+title+'</h3></div>'+
+ '<div class="technique-placeholder-mid">'+icon('dumbbell',90)+'<span>Добавь GIF движения</span></div>'+
+ '<div class="technique-placeholder-bottom"><div class="technique-phase"><span>'+
+ (isIncline?'Опускаем штангу':'Исходное положение')+'</span><strong>'+(isIncline?'ВНИЗ':'ДВИЖЕНИЕ')+
+ '</strong></div><div class="technique-progress"><b></b></div></div>';
+ const image=src?'<img class="technique-full-gif" src="'+src+'" alt="Анимация упражнения: '+title+'">':fallback;
+ return '<div class="technique-intro"><h2>Упражнения — в движении.</h2><p>Белый фон, крупная анимация, название сверху и подсказка снизу — как в твоём образце. Для каждого упражнения можно загрузить свою GIF.</p></div>'+
+ '<div class="technique-layout"><div class="technique-page-card"><div class="technique-display">'+image+'</div></div>'+
+ '<div class="technique-panel"><h3>Выбери упражнение</h3><p>Готовые GIF хранятся локально на твоём устройстве и будут доступны без интернета.</p>'+
+ '<div class="technique-options">'+TECHNIQUE_EXERCISES.map(x=>'<button class="technique-option '+(x===name?'active':'')+'" data-action="technique-select" data-id="'+escapeHTML(x)+'">'+escapeHTML(x)+(techniqueUrls[x]?' ✓':'')+'</button>').join('')+'</div>'+
+ '<label class="technique-upload" for="techniqueGif">'+icon('upload',16)+'&nbsp; Загрузить GIF для упражнения</label>'+
+ '<input id="techniqueGif" type="file" accept="image/gif,.gif" hidden>'+
+ '<div class="technique-tip">Для уже оформленной GIF, как на образце, загружай её целиком: рамки и подписи останутся внутри анимации. Если GIF ещё нет, показывается шаблон.</div>'+
+ '<button class="btn btn-subtle" data-nav="programs" style="width:100%;margin-top:16px">← К программам</button></div></div>';
+}
+
+function renderPrograms(){return `<div class="content-intro"><h2>Найди свой ритм.</h2><p>Готовые планы можно начать сразу или добавить в календарь. Подходы и повторения редактируются во время тренировки.</p></div><button class="btn btn-subtle" data-nav="technique" style="margin-bottom:20px">${icon("play",16)} Анимации и техника упражнений</button><div class="programs-grid">${PROGRAMS.map(p=>`<article class="program-card"><div class="program-top"><span class="program-symbol">${icon(p.icon,27)}</span><span class="program-badge">${p.tag}</span></div><h3>${escapeHTML(p.title)}</h3><p>${escapeHTML(p.subtitle)}</p><div class="program-detail"><span>${icon('clock',15)} ~${p.time} мин</span><span>${icon('layers',15)} ${p.exercises.length} упражнений</span></div><ul class="program-exercises">${p.exercises.map(e=>`<li>${escapeHTML(e[0])}</li>`).join('')}</ul><div class="program-bottom"><button class="btn btn-primary" data-action="start" data-id="${p.id}">${icon('play',15)} Начать</button><button class="btn btn-subtle btn-icon" data-action="plan-program" data-id="${p.id}" title="Запланировать" aria-label="Запланировать ${escapeHTML(p.title)}">${icon('calendarPlus',17)}</button></div></article>`).join('')}</div><div class="notice">${icon('info',16)} Программы — примеры, а не обязательная нагрузка. Подбирай упражнения с учётом своего опыта и техники; между тренировками оставляй время для восстановления.</div>`;}
 function makeSession(id){const p=programme(id);return{id:uid(),programId:p.id,name:p.title,date:TODAY(),startedAt:Date.now(),exercises:p.exercises.map(e=>({id:uid(),name:e[0],sets:Array.from({length:e[1]},()=>({id:uid(),reps:e[2],weight:0,done:false}))}))};}
 function startWorkout(id){if(data.active){if(!confirm('Сейчас уже идёт тренировка. Завершить её без сохранения и начать новую?')){navigate('workout');return;}data.active=null;}data.active=makeSession(id);data.defaultProgram=id;persist();navigate('workout');toast('Тренировка началась!',true);}
 function renderWorkout(){if(!data.active)return `<div class="workout-empty"><div class="empty-icon">${icon('dumbbell',38)}</div><h2>Готов к тренировке?</h2><p>Выбери программу, отмечай завершённые подходы и запускай таймер отдыха. Записи сохранятся в историю, когда закончишь занятие.</p><div class="quick-cards">${PROGRAMS.map(p=>`<button class="quick-card" data-action="start" data-id="${p.id}">${icon(p.icon,25)}${p.title}</button>`).join('')}</div></div>`;
 const s=data.active,done=countCompletedSets(s),total=countTotalSets(s);return `<div class="workout-layout"><div class="workout-main"><section class="session-top"><div class="session-topline"><span class="live-indicator"><span class="live-dot"></span> ТРЕНИРОВКА ИДЁТ</span><button class="btn btn-subtle btn-sm" data-action="finish">${icon('check',15)} Завершить</button></div><h2>${escapeHTML(s.name)}</h2><p>Отмечай выполненные подходы. Вес в кг, повторения — в шт. Для упражнений на время используй секунды.</p><div class="progress-track"><div style="width:${total?Math.round(done/total*100):0}%"></div></div><div class="session-count"><span>Прогресс занятия</span><span>${done} / ${total} подходов</span></div></section>
-${s.exercises.map((e,exIndex)=>`<section class="exercise-card"><div class="exercise-card-header"><div class="exercise-title"><span class="exercise-index">${pad(exIndex+1)}</span><span><h3>${escapeHTML(e.name)}</h3><small>${e.sets.filter(v=>v.done).length} из ${e.sets.length} выполнено</small></span></div><button class="btn btn-icon btn-subtle btn-sm" data-action="remove-exercise" data-eid="${e.id}" aria-label="Удалить упражнение" title="Убрать упражнение">${icon('x',14)}</button></div><div class="exercise-meta"><span>Сет</span><span>${e.name.includes('(сек)')?'Секунды':'Повторы'}</span><span>Вес (кг)</span><span>Готово</span></div>${e.sets.map((set,ix)=>`<div class="set-row ${set.done?'done':''}"><span class="set-number">${ix+1}</span><input class="set-input" type="number" min="0" max="999" step="1" inputmode="numeric" aria-label="Повторения: ${escapeHTML(e.name)}, подход ${ix+1}" data-set-field="reps" data-eid="${e.id}" data-sid="${set.id}" value="${Number(set.reps)||0}"/><input class="set-input" type="number" min="0" max="9999" step="0.5" inputmode="decimal" aria-label="Вес: ${escapeHTML(e.name)}, подход ${ix+1}" data-set-field="weight" data-eid="${e.id}" data-sid="${set.id}" value="${Number(set.weight)||0}"/><button class="set-check ${set.done?'checked':''}" data-action="toggle-set" data-eid="${e.id}" data-sid="${set.id}" aria-label="${set.done?'Снять отметку':'Отметить подход'}" aria-pressed="${set.done}">${icon('check',19)}</button></div>`).join('')}<button class="add-set" data-action="add-set" data-eid="${e.id}">${icon('plus',15)} Добавить подход</button></section>`).join('')}
+${s.exercises.map((e,exIndex)=>`<section class="exercise-card"><div class="exercise-card-header"><div class="exercise-title"><span class="exercise-index">${pad(exIndex+1)}</span><span><h3>${escapeHTML(e.name)}</h3><small>${e.sets.filter(v=>v.done).length} из ${e.sets.length} выполнено</small></span></div><button class="btn btn-subtle btn-sm" data-action="technique-open" data-id="${escapeHTML(e.name)}" aria-label="Посмотреть технику упражнения ${escapeHTML(e.name)}">${icon('play',14)} Техника</button><button class="btn btn-icon btn-subtle btn-sm" data-action="remove-exercise" data-eid="${e.id}" aria-label="Удалить упражнение" title="Убрать упражнение">${icon('x',14)}</button></div><div class="exercise-meta"><span>Сет</span><span>${e.name.includes('(сек)')?'Секунды':'Повторы'}</span><span>Вес (кг)</span><span>Готово</span></div>${e.sets.map((set,ix)=>`<div class="set-row ${set.done?'done':''}"><span class="set-number">${ix+1}</span><input class="set-input" type="number" min="0" max="999" step="1" inputmode="numeric" aria-label="Повторения: ${escapeHTML(e.name)}, подход ${ix+1}" data-set-field="reps" data-eid="${e.id}" data-sid="${set.id}" value="${Number(set.reps)||0}"/><input class="set-input" type="number" min="0" max="9999" step="0.5" inputmode="decimal" aria-label="Вес: ${escapeHTML(e.name)}, подход ${ix+1}" data-set-field="weight" data-eid="${e.id}" data-sid="${set.id}" value="${Number(set.weight)||0}"/><button class="set-check ${set.done?'checked':''}" data-action="toggle-set" data-eid="${e.id}" data-sid="${set.id}" aria-label="${set.done?'Снять отметку':'Отметить подход'}" aria-pressed="${set.done}">${icon('check',19)}</button></div>`).join('')}<button class="add-set" data-action="add-set" data-eid="${e.id}">${icon('plus',15)} Добавить подход</button></section>`).join('')}
 <div class="add-exercise"><input class="custom-input" id="customExercise" maxlength="60" placeholder="Название своего упражнения" aria-label="Название своего упражнения"/><button class="btn btn-subtle" data-action="add-exercise">${icon('plus',16)} Добавить</button></div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px"><button class="btn btn-primary" data-action="finish">${icon('check',17)} Завершить и сохранить</button><button class="btn btn-danger" data-action="discard">${icon('x',15)} Отменить занятие</button></div></div><aside class="side-stack">${renderTimer()}<div class="tip-card"><div class="tip-card-head">${icon('info',16)} Советы по тренировке</div><p>Записывай комфортное число повторений и подходов. Перед новым упражнением проверь технику и отдыхай столько, сколько нужно.</p></div></aside></div>`;}
 function setById(eid,sid){const e=data.active?.exercises.find(x=>x.id===eid);return e?.sets.find(s=>s.id===sid);}
 function updateSet(eid,sid,field,val){const s=setById(eid,sid);if(!s)return;let n=Number(val);if(!Number.isFinite(n)||n<0)n=0;n=Math.min(9999,n);s[field]=field==='reps'?Math.round(n):Math.round(n*2)/2;persist();}
@@ -293,6 +396,8 @@ function clearData(){if(!confirm('Точно удалить ВСЕ тренир�
 // Events are delegated so navigation works after re-rendering every view.
 document.addEventListener('click',event=>{const target=event.target.closest('[data-nav], [data-action]');if(!target)return;if(target.dataset.nav){navigate(target.dataset.nav);return;}const action=target.dataset.action,id=target.dataset.id,eid=target.dataset.eid,sid=target.dataset.sid;
 switch(action){
+case 'technique-open':selectedTechnique=TECHNIQUE_EXERCISES.includes(id)?id:TECHNIQUE_EXERCISES[0];navigate('technique');break;
+case 'technique-select':selectedTechnique=id;render();break;
 case 'start':startWorkout(id);break;case 'continue':navigate('workout');break;case 'plan-program':showCalendarFor(id);break;
 case 'toggle-set':toggleSet(eid,sid);break;case 'add-set':addSet(eid);break;case 'add-exercise':addExercise();break;case 'remove-exercise':removeExercise(eid);break;
 case 'finish':finishModal();break;case 'save-workout':saveWorkout();break;case 'discard':discardWorkout();break;
@@ -304,7 +409,7 @@ case 'native-pick':window.GymTrackAndroid.pickNativeAudio();break;case 'native-t
 case 'music-toggle':toggleMusic();break;case 'track-next':changeTrack(1);break;case 'track-prev':changeTrack(-1);break;case 'select-track':selectTrack(Number(id));break;
 case 'export':exportData();break;case 'clear':clearData();break;case 'close-modal':closeModal();break;case 'backdrop':if(event.target===target)closeModal();break;
 }});
-document.addEventListener('change',event=>{const el=event.target;if(el.dataset.setField){updateSet(el.dataset.eid,el.dataset.sid,el.dataset.setField,el.value);return;}if(el.id==='planProgram'){selectedPlanProgram=el.value;return;}if(el.id==='musicFiles'){addMusicFiles(el.files);return;}if(el.id==='importData'){importData(el.files?.[0]);return;}});
+document.addEventListener('change',event=>{const el=event.target;if(el.dataset.setField){updateSet(el.dataset.eid,el.dataset.sid,el.dataset.setField,el.value);return;}if(el.id==='planProgram'){selectedPlanProgram=el.value;return;}if(el.id==='techniqueGif'){techniqueUpload(el.files?.[0]);return;}if(el.id==='musicFiles'){addMusicFiles(el.files);return;}if(el.id==='importData'){importData(el.files?.[0]);return;}});
 document.addEventListener('input',event=>{if(event.target.id==='musicSeek'&&Number.isFinite(music.audio.duration))music.audio.currentTime=music.audio.duration*(Number(event.target.value)/100);if(event.target.id==='musicVolume')music.audio.volume=Number(event.target.value)/100;});
 document.addEventListener('keydown',event=>{if(event.key==='Escape')closeModal();if(event.key==='Enter'&&event.target.id==='customExercise'){event.preventDefault();addExercise();}});
 document.addEventListener('dragover',event=>{const box=event.target.closest('#uploadBox');if(box){event.preventDefault();box.classList.add('dragging');}});
