@@ -5,6 +5,9 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
+import android.provider.OpenableColumns
+import org.json.JSONArray
+import org.json.JSONObject
 import android.os.Bundle
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
@@ -23,6 +26,7 @@ class MainActivity : Activity() {
     companion object {
         private const val PICK_FILE = 1201
         private const val SAVE_FILE = 1202
+        private const val PICK_AUDIO = 1203
         private const val APP_URL = "https://appassets.androidplatform.net/assets/index.html"
     }
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,6 +82,40 @@ class MainActivity : Activity() {
         }
     }
     inner class Bridge{
+
+        @JavascriptInterface fun getNativeTracks():String =
+            getSharedPreferences("gymtrack_music",MODE_PRIVATE).getString("tracks","[]") ?: "[]"
+
+        @JavascriptInterface fun getNativeState():String =
+            getSharedPreferences("gymtrack_music",MODE_PRIVATE).getString("state","{\"playing\":false,\"index\":0}") ?: "{}"
+
+        @JavascriptInterface fun pickNativeAudio(){
+            runOnUiThread {
+                val intent=Intent(Intent.ACTION_OPEN_DOCUMENT).apply{
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type="audio/*"
+                    putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+                }
+                try {startActivityForResult(intent,PICK_AUDIO)}
+                catch(_:ActivityNotFoundException){
+                    Toast.makeText(this@MainActivity,"Выбор аудиофайлов недоступен",Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        @JavascriptInterface fun nativeMusicCommand(command:String,index:Int){
+            if(command !in setOf("track","toggle","next","previous") || index !in 0..999)return
+            runOnUiThread {
+                val i=Intent(this@MainActivity,MusicPlaybackService::class.java)
+                i.action=command
+                i.putExtra("index",index)
+                try {startService(i)}
+                catch(_:Exception){
+                    Toast.makeText(this@MainActivity,"Плеер недоступен",Toast.LENGTH_LONG).show()
+                }
+            }
+        }
         @JavascriptInterface fun openExternal(url:String){
             if(url.length>2048)return
             runOnUiThread { this@MainActivity.openExternal(Uri.parse(url)) }
@@ -108,6 +146,36 @@ class MainActivity : Activity() {
             PICK_FILE->{
                 chooser?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode,data))
                 chooser=null
+            }
+            PICK_AUDIO->{
+                if(resultCode==RESULT_OK&&data!=null){
+                    val uris=mutableListOf<Uri>()
+                    data.clipData?.let{clip->
+                        for(n in 0 until clip.itemCount)uris.add(clip.getItemAt(n).uri)
+                    }
+                    data.data?.let{ if(!uris.contains(it))uris.add(it) }
+                    val tracks=JSONArray()
+                    uris.distinct().take(100).forEach{uri->
+                        if(uri.scheme=="content"){
+                            try {
+                                contentResolver.takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                var name="Аудиофайл"
+                                contentResolver.query(uri,arrayOf(OpenableColumns.DISPLAY_NAME),null,null,null)?.use{cursor->
+                                    if(cursor.moveToFirst())name=cursor.getString(0) ?: name
+                                }
+                                tracks.put(JSONObject().put("uri",uri.toString()).put("name",name.take(160)))
+                            }catch(_:Exception){}
+                        }
+                    }
+                    if(tracks.length()>0){
+                        stopService(Intent(this,MusicPlaybackService::class.java))
+                        getSharedPreferences("gymtrack_music",MODE_PRIVATE).edit()
+                            .putString("tracks",tracks.toString())
+                            .putString("state","{\"playing\":false,\"index\":0}").apply()
+                        browser.evaluateJavascript("window.gymtrackReceiveTracks(${tracks})",null)
+                        Toast.makeText(this,"Добавлено файлов: ${tracks.length()}",Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
             SAVE_FILE->{
                 val text=backup;backup=null

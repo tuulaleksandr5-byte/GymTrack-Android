@@ -110,7 +110,7 @@ function renderNav(){document.getElementById('sideNav').innerHTML=NAV.map(i=>nav
 function renderHeader(){const [k,title]=PAGE_META[currentPage];document.getElementById('pageCategory').textContent=k;document.getElementById('pageTitle').textContent=title;document.getElementById('todayLabel').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});updateTopTimer();}
 function updateTopTimer(){const el=document.getElementById('topTimer');if(restRunning){el.hidden=false;el.innerHTML=icon('clock',15)+formattedTime(restRemaining);}else{el.hidden=true;el.innerHTML='';}}
 function sectionHead(title,subtitle,link,action){return `<div class="section-head"><div><h2 class="section-title">${escapeHTML(title)}</h2>${subtitle?`<div class="section-kicker">${escapeHTML(subtitle)}</div>`:''}</div>${link?`<button class="section-link" data-nav="${action}">${escapeHTML(link)} ${icon('arrowRight',15)}</button>`:''}</div>`;}
-function render(){renderNav();renderHeader();document.getElementById('content').innerHTML=({home:renderHome,programs:renderPrograms,workout:renderWorkout,calendar:renderCalendar,history:renderHistory,music:renderMusic,settings:renderSettings}[currentPage])();if(currentPage==='music')updateAudioUI();}
+function render(){renderNav();renderHeader();document.getElementById('content').innerHTML=({home:renderHome,programs:renderPrograms,workout:renderWorkout,calendar:renderCalendar,history:renderHistory,music:renderMusic,settings:renderSettings}[currentPage])();if(currentPage==='music'){if(IS_ANDROID_MUSIC)updateNativeMusicStatus(false);else updateAudioUI();}}
 function getNextPlan(){return [...data.plans].filter(p=>p.date>=TODAY()).sort((a,b)=>a.date.localeCompare(b.date))[0];}
 function renderHome(){const upcoming=getNextPlan(),monday=getWeekMonday(new Date()),weeks=[...Array(7)].map((_,i)=>addDays(monday,i)),completedDays=new Set(data.sessions.map(s=>s.date)),monthlyCount=data.sessions.filter(s=>s.date.slice(0,7)===TODAY().slice(0,7)).length;
 return `<div class="dash-grid">
@@ -156,7 +156,120 @@ function completedWeeks(){const first=getWeekMonday(new Date());return Array.fro
 function renderHistory(){const weeks=completedWeeks(),peak=Math.max(3,...weeks.map(x=>x.value));return `<div class="content-intro"><h2>История, которую создаёшь ты.</h2><p>Здесь сохраняются твои тренировки и выполненные подходы. Данные видны только в этом браузере.</p></div><div class="history-layout"><section class="panel">${sectionHead('Тренировки по неделям','Количество сохранённых занятий за 8 недель')}<div class="history-chart" aria-label="График тренировок по неделям">${weeks.map(w=>`<div class="chart-col"><span class="chart-num">${w.value}</span><div class="chart-bar-holder"><div class="chart-bar" style="height:${w.value/peak*100}%"></div></div><span class="chart-label">${w.label}</span></div>`).join('')}</div></section><section class="panel">${sectionHead('Твои результаты','Общая статистика')}<div class="stats-grid" style="grid-template-columns:repeat(2,1fr);margin:22px 0 0"><div class="stat-card"><span class="stat-label">Тренировки</span><div><span class="stat-number">${data.sessions.length}</span></div></div><div class="stat-card"><span class="stat-label">Подходы</span><div><span class="stat-number">${totalSets()}</span></div></div><div class="stat-card"><span class="stat-label">Всего времени</span><div><span class="stat-number">${Math.round(totalDuration()/60)}</span><span class="stat-unit">мин</span></div></div><div class="stat-card"><span class="stat-label">Дней с занятиями</span><div><span class="stat-number">${new Set(data.sessions.map(x=>x.date)).size}</span></div></div></div></section></div><div class="spacer-16"></div>${sectionHead('Журнал тренировок',`${data.sessions.length} сохранённых занятий`)}<div class="history-list">${data.sessions.length?data.sessions.map(s=>`<article class="session-card"><span class="session-symbol">${icon('dumbbell',22)}</span><div class="session-card-body"><h3>${escapeHTML(s.name)}</h3><p>${s.completedSets||0} подходов · ${durationLabel(s.duration)}</p></div><span class="session-date">${formattedDate(s.date)}</span><button class="btn btn-subtle btn-icon" data-action="session-details" data-id="${s.id}" title="Подробнее" aria-label="Подробнее о тренировке">${icon('chevronRight',18)}</button></article>`).join(''):`<div class="panel empty-panel">${icon('history',33)}<h3>История пока пустая</h3><p>Начни тренировку и сохрани хотя бы один подход — здесь появится первая запись.</p><button class="btn btn-primary" data-nav="programs">Выбрать программу ${icon('arrowRight',16)}</button></div>`}</div>`;}
 function showSessionDetails(id){const s=data.sessions.find(x=>x.id===id);if(!s)return;modal(`<div class="modal-top"><div class="modal-title">${escapeHTML(s.name)}</div><button class="btn btn-icon btn-subtle" data-action="close-modal" aria-label="Закрыть">${icon('x',16)}</button></div><p class="modal-desc">${formattedDate(s.date,{weekday:'long',day:'numeric',month:'long',year:'numeric'})} · ${durationLabel(s.duration)}</p><div class="modal-summary"><div><strong>${s.completedSets||0}</strong><span>подходов</span></div><div><strong>${s.exercises?.length||0}</strong><span>упражнений</span></div></div><div style="max-height:260px;overflow:auto">${(s.exercises||[]).map(e=>{const sets=(e.sets||[]).filter(x=>x.done);if(!sets.length)return '';return `<div class="detail-entry">${icon('check',18)}<div><strong>${escapeHTML(e.name)}</strong><small>${sets.map(x=>`${Number(x.reps)||0} повт. · ${Number(x.weight)||0} кг`).join(' / ')}</small></div></div>`;}).join('')}</div><div class="modal-actions"><button class="btn btn-subtle" data-action="close-modal">Закрыть</button><button class="btn btn-danger" data-action="delete-session" data-id="${s.id}">${icon('trash',15)} Удалить запись</button></div>`);}
 function deleteSession(id){if(!confirm('Удалить эту запись из истории?'))return;data.sessions=data.sessions.filter(s=>s.id!==id);persist();closeModal();render();toast('Запись удалена');}
-function renderMusic(){const track=music.tracks[music.index];return `<div class="content-intro"><h2>Тренируйся под свой плейлист.</h2><p>Загружай свои аудиофайлы с устройства и управляй воспроизведением прямо на сайте.</p></div><div class="music-layout"><section class="player-card"><div class="album-art" aria-hidden="true">${icon('headphones',86)}</div><div class="now-playing-label">СЕЙЧАС ИГРАЕТ</div><h2 class="track-title" data-audio-title>${track?escapeHTML(track.name):'Твой плейлист'}</h2><div class="track-subtitle" data-audio-subtitle>${track?'Локальный аудиофайл':'Добавь музыку для начала'}</div><input class="music-progress" type="range" id="musicSeek" min="0" max="100" value="0" aria-label="Позиция воспроизведения"/><div class="player-timestamps"><span id="musicTime">00:00</span><span id="musicDuration">00:00</span></div><div class="player-controls"><button class="player-plain" data-action="track-prev" aria-label="Предыдущая песня">${icon('skipBack',25)}</button><button class="player-main" data-action="music-toggle" aria-label="${music.playing?'Пауза':'Воспроизвести'}" id="musicMainControl">${icon(music.playing?'pause':'play',28)}</button><button class="player-plain" data-action="track-next" aria-label="Следующая песня">${icon('skipForward',25)}</button></div><div class="volume-row">${icon('volume',18)}<input type="range" min="0" max="100" id="musicVolume" value="${Math.round(music.audio.volume*100)}" aria-label="Громкость"/></div></section><section class="track-panel"><div class="section-head"><div><h2 class="section-title">Моя музыка</h2><div class="section-kicker">Аудио только с твоего устройства</div></div><span class="data-count">${music.tracks.length} треков</span></div><label class="upload-box" id="uploadBox" for="musicFiles" style="display:block">${icon('upload',27)}<h3>Добавить аудиофайлы</h3><p>Нажми здесь или перетащи файлы<br/>MP3, WAV, M4A и другие поддерживаемые форматы</p></label><input id="musicFiles" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac" multiple hidden/><div class="track-list" id="musicTracks">${music.tracks.length?music.tracks.map((t,i)=>`<button class="track-item ${music.index===i?'active':''}" data-action="select-track" data-id="${i}">${icon(music.index===i&&music.playing?'pause':'music',19)}<span class="track-name"><strong>${escapeHTML(t.name)}</strong><small>${escapeHTML(t.fileType||'Аудиофайл')}</small></span>${music.index===i?icon('check',15):''}</button>`).join(''):'<div class="empty-mini"><p>Треков пока нет. Добавь свои аудиофайлы, чтобы включить музыку.</p></div>'}</div><div class="track-help">${icon('info',14)} Аудиофайлы не отправляются на сервер. После перезагрузки страницы их нужно выбрать снова; сохранённые тренировки останутся.<div class="music-links"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer">YouTube Music ${icon('external',12)}</a><a href="https://open.spotify.com/" target="_blank" rel="noopener noreferrer">Spotify ${icon('external',12)}</a></div></div></section></div>`;}
+
+/* Playlist bookmarks link to official Spotify / YouTube Music applications.
+   Music files cannot be extracted from those services. Android plays the
+   user's own audio files through a separate MediaSessionService. */
+const IS_ANDROID_MUSIC=typeof window.GymTrackAndroid!=='undefined';
+let nativeTracks=[], nativeIndex=0, nativePlaying=false, linkedPlaylists=[];
+try {
+  linkedPlaylists=JSON.parse(localStorage.getItem('gymtrack_playlist_links')||'[]');
+  if(!Array.isArray(linkedPlaylists))linkedPlaylists=[];
+  linkedPlaylists=linkedPlaylists.filter(x=>x&&typeof x.url==='string'&&typeof x.provider==='string').slice(0,50);
+} catch(e){linkedPlaylists=[];}
+function loadNativeMusic(){
+ if(!IS_ANDROID_MUSIC)return;
+ try { const v=JSON.parse(window.GymTrackAndroid.getNativeTracks());nativeTracks=Array.isArray(v)?v:[]; }catch(e){nativeTracks=[];}
+ updateNativeMusicStatus(false);
+}
+function updateNativeMusicStatus(redraw=true){
+ if(!IS_ANDROID_MUSIC)return;
+ try {
+  const s=JSON.parse(window.GymTrackAndroid.getNativeState());
+  const nextIndex=Math.max(0,Number(s.index)||0), nextPlaying=!!s.playing;
+  const change=nextIndex!==nativeIndex||nextPlaying!==nativePlaying;
+  nativeIndex=nextIndex;nativePlaying=nextPlaying;
+  if(change&&redraw&&currentPage==='music')render();
+ }catch(e){}
+}
+window.gymtrackReceiveTracks=function(items){
+ nativeTracks=Array.isArray(items)?items:[];nativeIndex=0;nativePlaying=false;
+ if(currentPage==='music')render();
+};
+function nativeMusicCommand(cmd,index=nativeIndex){
+ if(!IS_ANDROID_MUSIC||!nativeTracks.length){toast('Сначала добавь аудиофайлы');return;}
+ try{
+  window.GymTrackAndroid.nativeMusicCommand(cmd,Number(index));
+  nativeIndex=(cmd==='track')?Number(index):nativeIndex;
+  if(cmd==='track')nativePlaying=true;
+  if(cmd==='toggle')nativePlaying=!nativePlaying;
+  if(cmd==='next')nativeIndex=(nativeIndex+1)%nativeTracks.length;
+  if(cmd==='previous')nativeIndex=(nativeIndex+nativeTracks.length-1)%nativeTracks.length;
+  if(currentPage==='music')render();
+ }catch(e){toast('Не удалось запустить музыку');}
+}
+function playlistProvider(value){
+ let u;
+ try{u=new URL(value.trim());}catch(e){return null;}
+ if(u.protocol!=='https:'||u.username||u.password||value.length>1000)return null;
+ if(u.hostname==='open.spotify.com'&&/^\/playlist\/[a-zA-Z0-9]+\/?$/.test(u.pathname))
+   return {provider:'Spotify',url:u.href};
+ if(['www.youtube.com','youtube.com','music.youtube.com'].includes(u.hostname)
+    &&['/playlist','/watch'].includes(u.pathname)&&/^[A-Za-z0-9_-]{8,}$/.test(u.searchParams.get('list')||''))
+   return {provider:'YouTube',url:u.href};
+ return null;
+}
+function savePlaylistLink(){
+ const field=document.getElementById('playlistUrl');
+ if(!field)return;
+ const item=playlistProvider(field.value);
+ if(!item){toast('Нужна ссылка на плейлист YouTube или Spotify');return;}
+ if(linkedPlaylists.some(p=>p.url===item.url)){toast('Плейлист уже добавлен');return;}
+ linkedPlaylists.push(item);
+ localStorage.setItem('gymtrack_playlist_links',JSON.stringify(linkedPlaylists));
+ render();toast('Ссылка на плейлист добавлена',true);
+}
+function playlistLinksSection(){
+ return `<section class="panel" style="margin-top:24px;padding:22px">
+ <div class="section-head"><div><h2 class="section-title">Плейлисты YouTube и Spotify</h2>
+ <div class="section-kicker">Сохраняй ссылки, чтобы быстро открывать любимые плейлисты</div></div></div>
+ <div style="display:flex;flex-wrap:wrap;gap:10px;margin:16px 0">
+ <input id="playlistUrl" type="url" placeholder="https://open.spotify.com/playlist/..." aria-label="Ссылка на плейлист"
+ style="flex:1;min-width:185px;background:#1b2027;color:#f4f4f4;border:1px solid #343941;border-radius:10px;padding:12px"/>
+ <button class="btn btn-primary" data-action="playlist-save">Сохранить ссылку</button></div>
+ ${linkedPlaylists.length?linkedPlaylists.map((p,i)=>`<div style="display:flex;align-items:center;gap:10px;margin:10px 0;flex-wrap:wrap">
+ <span style="flex:1;min-width:110px">${escapeHTML(p.provider)} · плейлист ${i+1}</span>
+ <button class="btn btn-subtle" data-action="playlist-open" data-id="${i}">Открыть</button>
+ <button class="btn btn-subtle" data-action="playlist-remove" data-id="${i}" aria-label="Удалить ссылку">✕</button>
+ </div>`).join(''):'<p class="panel-note">Пока нет сохранённых ссылок.</p>'}
+ <p class="panel-note" style="margin-top:14px">Это закладки, а не скачивание песен. Для офлайн-прослушивания музыки используй загрузку в официальных приложениях Spotify Premium или YouTube Music Premium. Такие загрузки нельзя перенести в GymTrack.</p>
+ </section>`;
+}
+function renderNativeMusic(){
+ const t=nativeTracks[nativeIndex];
+ return `<div class="content-intro"><h2>Твоя музыка всегда рядом.</h2>
+ <p>Добавь аудиофайлы с телефона и слушай их без интернета, даже когда экран заблокирован.</p></div>
+ <div class="music-layout">
+ <section class="player-card"><div class="album-art" aria-hidden="true">${icon('headphones',86)}</div>
+ <div class="now-playing-label">ОФЛАЙН-ПЛЕЕР ANDROID</div>
+ <h2 class="track-title">${t?escapeHTML(t.name):'Твой плейлист'}</h2>
+ <div class="track-subtitle">${nativePlaying?'Играет в фоне':'Пауза или ожидание'}</div>
+ <div class="player-controls" style="margin-top:30px">
+ <button class="player-plain" data-action="native-prev" aria-label="Предыдущий трек">${icon('skipBack',25)}</button>
+ <button class="player-main" data-action="native-toggle" aria-label="Воспроизвести или пауза">${icon(nativePlaying?'pause':'play',28)}</button>
+ <button class="player-plain" data-action="native-next" aria-label="Следующий трек">${icon('skipForward',25)}</button>
+ </div><div class="track-help">Управляй музыкой также через уведомление и экран блокировки Android.</div></section>
+ <section class="track-panel">
+ <div class="section-head"><div><h2 class="section-title">Мои аудиофайлы</h2>
+ <div class="section-kicker">Файлы остаются на твоём телефоне</div></div>
+ <span class="data-count">${nativeTracks.length} треков</span></div>
+ <button class="upload-box" type="button" data-action="native-pick" style="display:block;width:100%;color:inherit;background:transparent;cursor:pointer">
+ ${icon('upload',27)}<h3>Выбрать аудиофайлы</h3>
+ <p>MP3, M4A, WAV и другие форматы · можно выбрать несколько песен</p></button>
+ <div class="track-list">${nativeTracks.length?nativeTracks.map((it,i)=>`
+ <button class="track-item ${i===nativeIndex?'active':''}" data-action="native-track" data-id="${i}">
+ ${icon(i===nativeIndex&&nativePlaying?'pause':'music',19)}
+ <span class="track-name"><strong>${escapeHTML(it.name)}</strong><small>Офлайн · телефон</small></span>
+ ${i===nativeIndex?icon('check',15):''}</button>`).join(''):
+ '<div class="empty-mini"><p>Выбери свои аудиофайлы, чтобы слушать их без интернета.</p></div>'}</div>
+ <div class="track-help">${icon('info',14)} Выбранные файлы сохраняются в библиотеке GymTrack. Если переместишь или удалишь их, выбери заново.</div>
+ </section></div>${playlistLinksSection()}`;
+}
+loadNativeMusic();
+setInterval(()=>{if(IS_ANDROID_MUSIC&&currentPage==='music'&&!document.hidden)updateNativeMusicStatus()},2400);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateNativeMusicStatus()});
+
+function renderMusic(){if(IS_ANDROID_MUSIC)return renderNativeMusic();const track=music.tracks[music.index];return `<div class="content-intro"><h2>Тренируйся под свой плейлист.</h2><p>Загружай свои аудиофайлы с устройства и управляй воспроизведением прямо на сайте.</p></div><div class="music-layout"><section class="player-card"><div class="album-art" aria-hidden="true">${icon('headphones',86)}</div><div class="now-playing-label">СЕЙЧАС ИГРАЕТ</div><h2 class="track-title" data-audio-title>${track?escapeHTML(track.name):'Твой плейлист'}</h2><div class="track-subtitle" data-audio-subtitle>${track?'Локальный аудиофайл':'Добавь музыку для начала'}</div><input class="music-progress" type="range" id="musicSeek" min="0" max="100" value="0" aria-label="Позиция воспроизведения"/><div class="player-timestamps"><span id="musicTime">00:00</span><span id="musicDuration">00:00</span></div><div class="player-controls"><button class="player-plain" data-action="track-prev" aria-label="Предыдущая песня">${icon('skipBack',25)}</button><button class="player-main" data-action="music-toggle" aria-label="${music.playing?'Пауза':'Воспроизвести'}" id="musicMainControl">${icon(music.playing?'pause':'play',28)}</button><button class="player-plain" data-action="track-next" aria-label="Следующая песня">${icon('skipForward',25)}</button></div><div class="volume-row">${icon('volume',18)}<input type="range" min="0" max="100" id="musicVolume" value="${Math.round(music.audio.volume*100)}" aria-label="Громкость"/></div></section><section class="track-panel"><div class="section-head"><div><h2 class="section-title">Моя музыка</h2><div class="section-kicker">Аудио только с твоего устройства</div></div><span class="data-count">${music.tracks.length} треков</span></div><label class="upload-box" id="uploadBox" for="musicFiles" style="display:block">${icon('upload',27)}<h3>Добавить аудиофайлы</h3><p>Нажми здесь или перетащи файлы<br/>MP3, WAV, M4A и другие поддерживаемые форматы</p></label><input id="musicFiles" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac" multiple hidden/><div class="track-list" id="musicTracks">${music.tracks.length?music.tracks.map((t,i)=>`<button class="track-item ${music.index===i?'active':''}" data-action="select-track" data-id="${i}">${icon(music.index===i&&music.playing?'pause':'music',19)}<span class="track-name"><strong>${escapeHTML(t.name)}</strong><small>${escapeHTML(t.fileType||'Аудиофайл')}</small></span>${music.index===i?icon('check',15):''}</button>`).join(''):'<div class="empty-mini"><p>Треков пока нет. Добавь свои аудиофайлы, чтобы включить музыку.</p></div>'}</div><div class="track-help">${icon('info',14)} Аудиофайлы не отправляются на сервер. После перезагрузки страницы их нужно выбрать снова; сохранённые тренировки останутся.<div class="music-links"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer">YouTube Music ${icon('external',12)}</a><a href="https://open.spotify.com/" target="_blank" rel="noopener noreferrer">Spotify ${icon('external',12)}</a></div></div></section></div>${playlistLinksSection()}`;}
 function addMusicFiles(files){const valid=[...files].filter(f=>f.type.startsWith('audio/')||/\.(mp3|m4a|wav|ogg|aac|flac)$/i.test(f.name));if(!valid.length){toast('Выбери поддерживаемые аудиофайлы');return;}for(const f of valid.slice(0,50)){music.tracks.push({name:f.name.replace(/\.[^.]+$/,'').slice(0,140),url:URL.createObjectURL(f),fileType:f.type||'Аудиофайл'});}if(music.index===-1)selectTrack(0,false);render();toast(`Добавлено треков: ${Math.min(50,valid.length)}`,true);}
 function selectTrack(index,autoplay=true){if(index<0||index>=music.tracks.length)return;music.index=index;music.audio.src=music.tracks[index].url;music.audio.load();if(autoplay){music.audio.play().catch(()=>toast('Нажми Play, чтобы запустить музыку'));}if(currentPage==='music')render();}
 function toggleMusic(){if(music.index<0){toast('Сначала добавь аудиофайлы');return;}if(music.audio.paused){music.audio.play().catch(()=>toast('Не удалось запустить этот аудиофайл'));}else music.audio.pause();}
@@ -186,6 +299,8 @@ case 'finish':finishModal();break;case 'save-workout':saveWorkout();break;case '
 case 'timer-preset':timerPreset(Number(id));break;case 'timer-toggle':timerToggle();break;case 'timer-reset':timerReset();break;
 case 'month-prev':calendarChangeMonth(-1);break;case 'month-next':calendarChangeMonth(1);break;case 'select-date':selectCalendarDate(id);break;case 'schedule':scheduleWorkout();break;case 'remove-plan':removePlan(id);break;
 case 'session-details':showSessionDetails(id);break;case 'delete-session':deleteSession(id);break;
+case 'playlist-save':savePlaylistLink();break;case 'playlist-open':{const p=linkedPlaylists[Number(id)];if(p){if(IS_ANDROID_MUSIC)window.GymTrackAndroid.openExternal(p.url);else window.open(p.url,'_blank','noopener');}break;}case 'playlist-remove':linkedPlaylists.splice(Number(id),1);localStorage.setItem('gymtrack_playlist_links',JSON.stringify(linkedPlaylists));render();break;
+case 'native-pick':window.GymTrackAndroid.pickNativeAudio();break;case 'native-track':nativeMusicCommand('track',Number(id));break;case 'native-toggle':nativeMusicCommand('toggle');break;case 'native-next':nativeMusicCommand('next');break;case 'native-prev':nativeMusicCommand('previous');break;
 case 'music-toggle':toggleMusic();break;case 'track-next':changeTrack(1);break;case 'track-prev':changeTrack(-1);break;case 'select-track':selectTrack(Number(id));break;
 case 'export':exportData();break;case 'clear':clearData();break;case 'close-modal':closeModal();break;case 'backdrop':if(event.target===target)closeModal();break;
 }});
