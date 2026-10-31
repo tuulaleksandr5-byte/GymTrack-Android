@@ -1,0 +1,64 @@
+{
+  "name": "gymtrack-desktop",
+  "version": "1.1.0",
+  "private": true,
+  "description": "GymTrack — тренировки и музыка на компьютере",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "npm run check && node scripts/create-icon.cjs && electron .",
+    "check": "node scripts/check.cjs",
+    "dist:win": "npm run check && node scripts/create-icon.cjs && electron-builder --win --x64"
+  },
+  "devDependencies": {
+    "electron": "44.10.0",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "com.gymtrack.desktop",
+    "productName": "GymTrack",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../app/src/main/assets",
+        "to": "web",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "GymTrack-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "GymTrack-Portable-${version}.${ext}"
+    }
+  }
+}
