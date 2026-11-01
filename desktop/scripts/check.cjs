@@ -102,7 +102,7 @@ const soundCloudTests=async()=>{
  const mock=async(url,opts)=>{
   if(url.includes('/oauth/token')){
    authCalls++;assert.equal(opts.method,'POST');
-   assert.match(opts.headers.Authorization||'','Basic ');
+   assert.match(opts.headers.Authorization||'',/^Basic /);
    return {ok:true,json:async()=>({access_token:'test-token',expires_in:3600,refresh_token:'refresh-token'})};
   }
   searchCalls++;
