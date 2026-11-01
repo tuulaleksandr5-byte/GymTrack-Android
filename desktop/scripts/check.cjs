@@ -19,7 +19,7 @@ for(const gif of expected) {
  assert(fs.statSync(p).size>300000,'GIF missing or truncated: '+gif);
  assert(html.includes('gifs/'+gif),'GIF not linked in interface: '+gif);
 }
-const matches=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
+const matches=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].filter(m=>!/<script[^>]*\bsrc\s*=/.test(m[0].split('>')[0]));
 assert.equal(matches.length,1,'Expected one embedded app script');
 const temp=path.join(__dirname,'.app-test.js');
 try {
@@ -44,7 +44,10 @@ const {createAssetHandler}=require('../asset-loader.cjs');
  assert.equal(missing.status,404);
  const invalid=await handle({url:'gymtrack://app/%5cprivate.txt'});
  assert.equal(invalid.status,400);
- console.log('GymTrack desktop loader check passed: HTML + GIF + path protection.');
+ const editor=path.join(base,'program-editor.js');
+ assert(fs.statSync(editor).size>1000);
+ require('node:child_process').execFileSync(process.execPath,['--check',editor],{stdio:'inherit'});
+ console.log('GymTrack desktop loader check passed: HTML + GIF + custom editor + path protection.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
 
 const {extractVideoId,soundCloudSearchUrl,getYouTubeTitle}=require('../youtube-search.cjs');
