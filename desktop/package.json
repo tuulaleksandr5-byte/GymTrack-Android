@@ -23,8 +23,8 @@
     "files": [
       "main.cjs",
       "asset-loader.cjs",
-      "youtube-search.cjs",
       "preload.cjs",
+      "youtube-title.cjs",
       "package.json"
     ],
     "extraResources": [

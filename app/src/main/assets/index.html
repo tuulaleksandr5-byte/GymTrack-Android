@@ -403,6 +403,59 @@ function soundCloudSearchSection(){
  '</section>';
 }
 
+
+let youtubeSoundcloudSearch=null;
+async function youtubeToSoundCloudSearch(){
+ const field=document.getElementById('youtubeTrackSearch');
+ const input=(field?.value||'').trim();
+ if(!input){toast('Вставь ссылку на YouTube или название трека');return;}
+ if(input.length>1500){toast('Ссылка или название слишком длинные');return;}
+ let title=input,source='Ручной поиск';
+ if(/^https?:\/\//i.test(input)){
+   if(!window.GymTrackDesktop?.lookupYoutubeTitle){
+     toast('По ссылке поиск доступен в версии Windows; здесь введи название трека.');
+     return;
+   }
+   const button=document.querySelector('[data-action="youtube-to-soundcloud"]');
+   if(button){button.disabled=true;button.textContent='Определяем трек…';}
+   try{
+     const data=await window.GymTrackDesktop.lookupYoutubeTitle(input);
+     if(!data||typeof data.title!=='string'){
+       toast(data?.error||'Не удалось определить трек. Введи название вручную.');
+       return;
+     }
+     title=data.title.slice(0,180);
+     source=data.author?'Видео YouTube · '+data.author:'Видео YouTube';
+   }catch(e){toast('Не удалось определить название. Введи название вручную.');return;}
+   finally {if(button){button.disabled=false;button.textContent='Найти на SoundCloud';}}
+ }else if(input.length>180){
+   toast('Название трека слишком длинное');return;
+ }
+ youtubeSoundcloudSearch={title,source,url:'https://soundcloud.com/search/sounds?q='+encodeURIComponent(title)};
+ render();
+}
+function openYoutubeSoundCloud(){
+ if(!youtubeSoundcloudSearch?.url)return;
+ const url=youtubeSoundcloudSearch.url;
+ if(window.GymTrackAndroid?.openExternal)window.GymTrackAndroid.openExternal(url);
+ else window.open(url,'_blank','noopener,noreferrer');
+}
+function youtubeSoundcloudPanel(){
+ const found=youtubeSoundcloudSearch;
+ return '<div style="border:1px solid #343941;border-radius:14px;padding:17px;margin-top:18px;background:#1b2027">'+
+ '<h3 style="font-size:17px;margin:0 0 8px">Найти песню YouTube в SoundCloud</h3>'+
+ '<p class="panel-note">Вставь ссылку на одно YouTube-видео. GymTrack для Windows определит название и подготовит поиск в SoundCloud. Можно также ввести название трека вручную.</p>'+
+ '<div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:12px">'+
+ '<input id="youtubeTrackSearch" type="text" maxlength="1500" placeholder="Ссылка YouTube или название песни" aria-label="Ссылка на YouTube или название песни" style="flex:1;min-width:190px;background:#101216;border:1px solid #434851;color:#f7f7f7;border-radius:10px;padding:12px"/>'+
+ '<button class="btn btn-primary" data-action="youtube-to-soundcloud">Найти на SoundCloud</button></div>'+
+ (found?'<div style="margin-top:14px;padding:12px;border-radius:10px;background:#252a32">'+
+ '<span style="font-size:12px;color:#adb3bb">'+escapeHTML(found.source)+'</span>'+
+ '<p style="margin:7px 0 10px;font-weight:700">'+escapeHTML(found.title)+'</p>'+
+ '<button class="btn btn-subtle" data-action="youtube-open-soundcloud">Открыть результаты SoundCloud →</button></div>':'')+
+ '<p style="font-size:12px;color:#a4abb4;margin:13px 0 0">Результаты могут содержать каверы, ремиксы и похожие названия. GymTrack не скачивает музыку из этих сервисов.</p>'+
+ '</div>';
+}
+
 function playlistLinksSection(){
  return `<section class="panel" style="margin-top:24px;padding:22px">
  <div class="section-head"><div><h2 class="section-title">Плейлисты YouTube и Spotify</h2>
@@ -416,6 +469,7 @@ function playlistLinksSection(){
  <button class="btn btn-subtle" data-action="playlist-open" data-id="${i}">Открыть</button>
  <button class="btn btn-subtle" data-action="playlist-remove" data-id="${i}" aria-label="Удалить ссылку">✕</button>
  </div>`).join(''):'<p class="panel-note">Пока нет сохранённых ссылок.</p>'}
+ ${youtubeSoundcloudPanel()}
  <p class="panel-note" style="margin-top:14px">Это закладки, а не скачивание песен. Для офлайн-прослушивания музыки используй загрузку в официальных приложениях Spotify Premium или YouTube Music Premium. Такие загрузки нельзя перенести в GymTrack.</p>
  </section>`;
 }
@@ -486,6 +540,8 @@ case 'timer-preset':timerPreset(Number(id));break;case 'timer-toggle':timerToggl
 case 'month-prev':calendarChangeMonth(-1);break;case 'month-next':calendarChangeMonth(1);break;case 'select-date':selectCalendarDate(id);break;case 'schedule':scheduleWorkout();break;case 'remove-plan':removePlan(id);break;
 case 'session-details':showSessionDetails(id);break;case 'delete-session':deleteSession(id);break;
 case 'soundcloud-search':findYouTubeTrackOnSoundCloud();break;
+case 'youtube-to-soundcloud':youtubeToSoundCloudSearch();break;
+case 'youtube-open-soundcloud':openYoutubeSoundCloud();break;
 case 'playlist-save':savePlaylistLink();break;case 'playlist-open':{const p=linkedPlaylists[Number(id)];if(p){if(IS_ANDROID_MUSIC)window.GymTrackAndroid.openExternal(p.url);else window.open(p.url,'_blank','noopener');}break;}case 'playlist-remove':linkedPlaylists.splice(Number(id),1);localStorage.setItem('gymtrack_playlist_links',JSON.stringify(linkedPlaylists));render();break;
 case 'native-pick':window.GymTrackAndroid.pickNativeAudio();break;case 'native-track':nativeMusicCommand('track',Number(id));break;case 'native-toggle':nativeMusicCommand('toggle');break;case 'native-next':nativeMusicCommand('next');break;case 'native-prev':nativeMusicCommand('previous');break;
 case 'music-toggle':toggleMusic();break;case 'track-next':changeTrack(1);break;case 'track-prev':changeTrack(-1);break;case 'select-track':selectTrack(Number(id));break;

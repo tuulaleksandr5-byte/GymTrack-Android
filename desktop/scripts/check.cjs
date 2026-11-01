@@ -6,7 +6,7 @@ const base=path.resolve(__dirname,'..','..','app','src','main','assets');
 const html=fs.readFileSync(path.join(base,'index.html'),'utf8');
 const features=['gymtrack_v1','function renderCalendar','function renderHistory','function renderWorkout',
   'function renderMusic','BUILTIN_TECHNIQUE_ASSETS','12 GIF','playlistLinksSection',
-  'function exportData','function renderTechnique'];
+  'function exportData','function renderTechnique','function youtubeToSoundCloudSearch','youtubeTrackSearch'];
 for(const feature of features) assert(html.includes(feature),'Missing app feature: '+feature);
 const expected=[
   '01_barbell_bench_press.gif','02_dumbbell_bench_press.gif','03_incline_barbell_press.gif',
@@ -63,3 +63,29 @@ getYouTubeTitle('https://youtu.be/dQw4w9WgXcQ',async(url,options)=>{
   return {ok:true,text:async()=>JSON.stringify({title:'Test YouTube title'})};
 }).then(v=>assert.equal(v.title,'Test YouTube title')).catch(e=>{console.error(e);process.exitCode=1;});
 console.log('YouTube to SoundCloud search: URL handling verified.');
+
+const {youtubeVideoId,lookupYoutubeTitle}=require('../youtube-title.cjs');
+const assertYoutube=async()=>{
+  const id='dQw4w9WgXcQ';
+  assert.equal(youtubeVideoId('https://youtu.be/'+id),id);
+  assert.equal(youtubeVideoId('https://www.youtube.com/watch?v='+id),id);
+  assert.equal(youtubeVideoId('https://www.youtube.com/shorts/'+id),id);
+  assert.equal(youtubeVideoId('https://youtube.com.evil.test/watch?v='+id),null);
+  assert.equal(youtubeVideoId('https://www.youtube.com.evil.test/watch?v='+id),null);
+  assert.equal(youtubeVideoId('http://www.youtube.com/watch?v='+id),null);
+  assert.equal(youtubeVideoId('https://www.youtube.com/watch?v=short'),null);
+  let wasCalled=false;
+  const result=await lookupYoutubeTitle('https://youtu.be/'+id,async url=>{
+    wasCalled=true;
+    assert.equal(new URL(url).hostname,'www.youtube.com');
+    assert.ok(url.includes('/oembed?'));
+    return {ok:true,json:async()=>({title:'Test Track',author_name:'Artist'})};
+  });
+  assert(wasCalled);
+  assert.equal(result.title,'Test Track');
+  assert.equal(result.author,'Artist');
+  const bad=await lookupYoutubeTitle('https://evil.test/watch?v='+id,async()=>{throw Error('should not fetch')});
+  assert.ok(bad.error);
+  console.log('YouTube to SoundCloud metadata lookup tested safely.');
+};
+assertYoutube().catch(e=>{console.error(e);process.exitCode=1;});

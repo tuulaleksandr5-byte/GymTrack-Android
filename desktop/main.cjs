@@ -4,6 +4,7 @@
 const {app, BrowserWindow, Menu, protocol, shell, dialog, ipcMain} = require('electron');
 const path = require('node:path');
 const {createAssetHandler} = require('./asset-loader.cjs');
+const {lookupYoutubeTitle} = require('./youtube-title.cjs');
 const {getYouTubeTitle,soundCloudSearchUrl} = require('./youtube-search.cjs');
 
 const SCHEME = 'gymtrack';
@@ -22,7 +23,7 @@ function assetsFolder() {
 }
 
 const externalHosts = new Set([
-  'open.spotify.com', 'music.youtube.com', 'www.youtube.com', 'youtube.com','soundcloud.com'
+  'open.spotify.com', 'music.youtube.com', 'www.youtube.com', 'youtube.com', 'soundcloud.com', 'www.soundcloud.com','soundcloud.com'
 ]);
 function openApprovedExternal(rawUrl) {
   try {
@@ -42,6 +43,7 @@ function createMainWindow() {
     autoHideMenuBar:true,
     icon:path.join(__dirname,'build','icon.png'),
     webPreferences:{
+      preload:path.join(__dirname,'preload.cjs'),
       nodeIntegration:false,contextIsolation:true,sandbox:true,
       preload:path.join(__dirname,'preload.cjs'),
       webSecurity:true,allowRunningInsecureContent:false,
