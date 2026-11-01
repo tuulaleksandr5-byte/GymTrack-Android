@@ -46,3 +46,20 @@ const {createAssetHandler}=require('../asset-loader.cjs');
  assert.equal(invalid.status,400);
  console.log('GymTrack desktop loader check passed: HTML + GIF + path protection.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
+const {extractVideoId,soundCloudSearchUrl,getYouTubeTitle}=require('../youtube-search.cjs');
+assert.equal(extractVideoId('https://www.youtube.com/watch?v=dQw4w9WgXcQ'),'dQw4w9WgXcQ');
+assert.equal(extractVideoId('https://youtu.be/dQw4w9WgXcQ'),'dQw4w9WgXcQ');
+assert.equal(extractVideoId('https://music.youtube.com/watch?v=dQw4w9WgXcQ'),'dQw4w9WgXcQ');
+assert.equal(extractVideoId('https://www.youtube.com/shorts/dQw4w9WgXcQ'),'dQw4w9WgXcQ');
+assert.equal(extractVideoId('https://www.youtube.com/playlist?list=PL123'),null);
+assert.equal(extractVideoId('https://evil-example.com/watch?v=dQw4w9WgXcQ'),null);
+assert.equal(extractVideoId('http://youtube.com/watch?v=dQw4w9WgXcQ'),null);
+assert.equal(soundCloudSearchUrl('Test Song'),'https://soundcloud.com/search/sounds?q=Test%20Song');
+assert.equal(soundCloudSearchUrl('   '),null);
+getYouTubeTitle('https://youtu.be/dQw4w9WgXcQ',async(url,options)=>{
+  assert.match(url,/youtube\.com\/oembed/);
+  assert.equal(options.redirect,'error');
+  return {ok:true,text:async()=>JSON.stringify({title:'Test YouTube title'})};
+}).then(v=>assert.equal(v.title,'Test YouTube title')).catch(e=>{console.error(e);process.exitCode=1;});
+console.log('YouTube to SoundCloud search: URL handling verified.');

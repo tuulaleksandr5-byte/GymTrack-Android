@@ -83,6 +83,7 @@
   <script>
 'use strict';
 const ICONS={
+ search:'<circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/>',
  home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21v-8h6v8"/>',
  dumbbell:'<path d="m6.5 6.5 11 11m3-3-6 6m-11-11 6-6M3 8l5-5m13 13-5 5M7 11l4-4m2 10 4-4"/>',
  calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
@@ -337,6 +338,71 @@ function savePlaylistLink(){
  localStorage.setItem('gymtrack_playlist_links',JSON.stringify(linkedPlaylists));
  render();toast('Ссылка на плейлист добавлена',true);
 }
+
+function soundCloudQueryFromInput(){
+  const element=document.getElementById('soundCloudQuery');
+  return String(element?.value||'').trim().slice(0,220);
+}
+function isYouTubeMusicLink(value){
+  try {
+    const u=new URL(value);
+    return u.protocol==='https:' && ['www.youtube.com','youtube.com','m.youtube.com','music.youtube.com','youtu.be'].includes(u.hostname);
+  } catch {return false;}
+}
+function openSoundCloudSearch(query){
+  if(!query||query.length>220)return;
+  if(window.GymTrackDesktop?.openSoundCloudSearch){
+    window.GymTrackDesktop.openSoundCloudSearch(query).catch(()=>toast('Не удалось открыть SoundCloud'));
+    return;
+  }
+  const url='https://soundcloud.com/search/sounds?q='+encodeURIComponent(query);
+  if(IS_ANDROID_MUSIC)window.GymTrackAndroid.openExternal(url);
+  else window.open(url,'_blank','noopener');
+}
+async function findYouTubeTrackOnSoundCloud(){
+  const q=soundCloudQueryFromInput();
+  if(!q){toast('Вставь ссылку YouTube или напиши название песни');return;}
+  if(!isYouTubeMusicLink(q)){openSoundCloudSearch(q);return;}
+  if(!window.GymTrackDesktop?.getYouTubeTitle){
+    toast('Для ссылки YouTube используй ПК-версию; здесь введи название песни');
+    return;
+  }
+  const status=document.getElementById('soundCloudSearchStatus');
+  const button=document.querySelector('[data-action="soundcloud-search"]');
+  if(status)status.textContent='Получаю название видео YouTube…';
+  if(button)button.disabled=true;
+  try {
+    const response=await window.GymTrackDesktop.getYouTubeTitle(q);
+    if(response?.title){
+      const title=String(response.title).trim().slice(0,220);
+      const input=document.getElementById('soundCloudQuery');
+      if(input)input.value=title;
+      if(status)status.textContent='Найдено название: '+title+'. Открываю поиск SoundCloud…';
+      openSoundCloudSearch(title);
+    }else{
+      if(status)status.textContent='Название не удалось получить. Введи его вручную.';
+      toast('YouTube не вернул название видео');
+    }
+  } catch(e){
+    if(status)status.textContent='Не получилось получить название. Попробуй ввести его вручную.';
+    toast('Не удалось получить название с YouTube');
+  } finally {
+    if(button)button.disabled=false;
+  }
+}
+function soundCloudSearchSection(){
+ return '<section class="panel" style="margin-top:24px;padding:22px">'+
+ '<div class="section-head"><div><h2 class="section-title">Найти трек YouTube в SoundCloud</h2>'+
+ '<div class="section-kicker">Поиск по названию, без копирования музыки</div></div></div>'+
+ '<p class="panel-note" style="margin:10px 0 16px">Вставь ссылку на отдельное видео YouTube или напиши название песни и исполнителя. В Windows GymTrack может определить название видео автоматически.</p>'+
+ '<div style="display:flex;gap:10px;flex-wrap:wrap">'+
+ '<input id="soundCloudQuery" type="text" maxlength="700" autocomplete="off" spellcheck="false" aria-label="Ссылка YouTube или название трека" placeholder="Ссылка YouTube или исполнитель — название" '+
+ 'style="min-width:180px;flex:1;border-radius:10px;border:1px solid #343941;padding:12px;background:#1b2027;color:#f4f4f4">'+
+ '<button class="btn btn-primary" data-action="soundcloud-search">'+icon('search',16)+' Поиск в SoundCloud</button></div>'+
+ '<p class="panel-note" id="soundCloudSearchStatus" role="status" aria-live="polite" style="margin-top:12px">Откроется сайт SoundCloud с результатами. Не все песни YouTube там есть, и версии могут отличаться.</p>'+
+ '</section>';
+}
+
 function playlistLinksSection(){
  return `<section class="panel" style="margin-top:24px;padding:22px">
  <div class="section-head"><div><h2 class="section-title">Плейлисты YouTube и Spotify</h2>
@@ -381,13 +447,13 @@ function renderNativeMusic(){
  ${i===nativeIndex?icon('check',15):''}</button>`).join(''):
  '<div class="empty-mini"><p>Выбери свои аудиофайлы, чтобы слушать их без интернета.</p></div>'}</div>
  <div class="track-help">${icon('info',14)} Выбранные файлы сохраняются в библиотеке GymTrack. Если переместишь или удалишь их, выбери заново.</div>
- </section></div>${playlistLinksSection()}`;
+ </section></div>${soundCloudSearchSection()}${playlistLinksSection()}`;
 }
 loadNativeMusic();
 setInterval(()=>{if(IS_ANDROID_MUSIC&&currentPage==='music'&&!document.hidden)updateNativeMusicStatus()},2400);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateNativeMusicStatus()});
 
-function renderMusic(){if(IS_ANDROID_MUSIC)return renderNativeMusic();const track=music.tracks[music.index];return `<div class="content-intro"><h2>Тренируйся под свой плейлист.</h2><p>Загружай свои аудиофайлы с устройства и управляй воспроизведением прямо на сайте.</p></div><div class="music-layout"><section class="player-card"><div class="album-art" aria-hidden="true">${icon('headphones',86)}</div><div class="now-playing-label">СЕЙЧАС ИГРАЕТ</div><h2 class="track-title" data-audio-title>${track?escapeHTML(track.name):'Твой плейлист'}</h2><div class="track-subtitle" data-audio-subtitle>${track?'Локальный аудиофайл':'Добавь музыку для начала'}</div><input class="music-progress" type="range" id="musicSeek" min="0" max="100" value="0" aria-label="Позиция воспроизведения"/><div class="player-timestamps"><span id="musicTime">00:00</span><span id="musicDuration">00:00</span></div><div class="player-controls"><button class="player-plain" data-action="track-prev" aria-label="Предыдущая песня">${icon('skipBack',25)}</button><button class="player-main" data-action="music-toggle" aria-label="${music.playing?'Пауза':'Воспроизвести'}" id="musicMainControl">${icon(music.playing?'pause':'play',28)}</button><button class="player-plain" data-action="track-next" aria-label="Следующая песня">${icon('skipForward',25)}</button></div><div class="volume-row">${icon('volume',18)}<input type="range" min="0" max="100" id="musicVolume" value="${Math.round(music.audio.volume*100)}" aria-label="Громкость"/></div></section><section class="track-panel"><div class="section-head"><div><h2 class="section-title">Моя музыка</h2><div class="section-kicker">Аудио только с твоего устройства</div></div><span class="data-count">${music.tracks.length} треков</span></div><label class="upload-box" id="uploadBox" for="musicFiles" style="display:block">${icon('upload',27)}<h3>Добавить аудиофайлы</h3><p>Нажми здесь или перетащи файлы<br/>MP3, WAV, M4A и другие поддерживаемые форматы</p></label><input id="musicFiles" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac" multiple hidden/><div class="track-list" id="musicTracks">${music.tracks.length?music.tracks.map((t,i)=>`<button class="track-item ${music.index===i?'active':''}" data-action="select-track" data-id="${i}">${icon(music.index===i&&music.playing?'pause':'music',19)}<span class="track-name"><strong>${escapeHTML(t.name)}</strong><small>${escapeHTML(t.fileType||'Аудиофайл')}</small></span>${music.index===i?icon('check',15):''}</button>`).join(''):'<div class="empty-mini"><p>Треков пока нет. Добавь свои аудиофайлы, чтобы включить музыку.</p></div>'}</div><div class="track-help">${icon('info',14)} Аудиофайлы не отправляются на сервер. После перезагрузки страницы их нужно выбрать снова; сохранённые тренировки останутся.<div class="music-links"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer">YouTube Music ${icon('external',12)}</a><a href="https://open.spotify.com/" target="_blank" rel="noopener noreferrer">Spotify ${icon('external',12)}</a></div></div></section></div>${playlistLinksSection()}`;}
+function renderMusic(){if(IS_ANDROID_MUSIC)return renderNativeMusic();const track=music.tracks[music.index];return `<div class="content-intro"><h2>Тренируйся под свой плейлист.</h2><p>Загружай свои аудиофайлы с устройства и управляй воспроизведением прямо на сайте.</p></div><div class="music-layout"><section class="player-card"><div class="album-art" aria-hidden="true">${icon('headphones',86)}</div><div class="now-playing-label">СЕЙЧАС ИГРАЕТ</div><h2 class="track-title" data-audio-title>${track?escapeHTML(track.name):'Твой плейлист'}</h2><div class="track-subtitle" data-audio-subtitle>${track?'Локальный аудиофайл':'Добавь музыку для начала'}</div><input class="music-progress" type="range" id="musicSeek" min="0" max="100" value="0" aria-label="Позиция воспроизведения"/><div class="player-timestamps"><span id="musicTime">00:00</span><span id="musicDuration">00:00</span></div><div class="player-controls"><button class="player-plain" data-action="track-prev" aria-label="Предыдущая песня">${icon('skipBack',25)}</button><button class="player-main" data-action="music-toggle" aria-label="${music.playing?'Пауза':'Воспроизвести'}" id="musicMainControl">${icon(music.playing?'pause':'play',28)}</button><button class="player-plain" data-action="track-next" aria-label="Следующая песня">${icon('skipForward',25)}</button></div><div class="volume-row">${icon('volume',18)}<input type="range" min="0" max="100" id="musicVolume" value="${Math.round(music.audio.volume*100)}" aria-label="Громкость"/></div></section><section class="track-panel"><div class="section-head"><div><h2 class="section-title">Моя музыка</h2><div class="section-kicker">Аудио только с твоего устройства</div></div><span class="data-count">${music.tracks.length} треков</span></div><label class="upload-box" id="uploadBox" for="musicFiles" style="display:block">${icon('upload',27)}<h3>Добавить аудиофайлы</h3><p>Нажми здесь или перетащи файлы<br/>MP3, WAV, M4A и другие поддерживаемые форматы</p></label><input id="musicFiles" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac" multiple hidden/><div class="track-list" id="musicTracks">${music.tracks.length?music.tracks.map((t,i)=>`<button class="track-item ${music.index===i?'active':''}" data-action="select-track" data-id="${i}">${icon(music.index===i&&music.playing?'pause':'music',19)}<span class="track-name"><strong>${escapeHTML(t.name)}</strong><small>${escapeHTML(t.fileType||'Аудиофайл')}</small></span>${music.index===i?icon('check',15):''}</button>`).join(''):'<div class="empty-mini"><p>Треков пока нет. Добавь свои аудиофайлы, чтобы включить музыку.</p></div>'}</div><div class="track-help">${icon('info',14)} Аудиофайлы не отправляются на сервер. После перезагрузки страницы их нужно выбрать снова; сохранённые тренировки останутся.<div class="music-links"><a href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer">YouTube Music ${icon('external',12)}</a><a href="https://open.spotify.com/" target="_blank" rel="noopener noreferrer">Spotify ${icon('external',12)}</a></div></div></section></div>${soundCloudSearchSection()}${playlistLinksSection()}`;}
 function addMusicFiles(files){const valid=[...files].filter(f=>f.type.startsWith('audio/')||/\.(mp3|m4a|wav|ogg|aac|flac)$/i.test(f.name));if(!valid.length){toast('Выбери поддерживаемые аудиофайлы');return;}for(const f of valid.slice(0,50)){music.tracks.push({name:f.name.replace(/\.[^.]+$/,'').slice(0,140),url:URL.createObjectURL(f),fileType:f.type||'Аудиофайл'});}if(music.index===-1)selectTrack(0,false);render();toast(`Добавлено треков: ${Math.min(50,valid.length)}`,true);}
 function selectTrack(index,autoplay=true){if(index<0||index>=music.tracks.length)return;music.index=index;music.audio.src=music.tracks[index].url;music.audio.load();if(autoplay){music.audio.play().catch(()=>toast('Нажми Play, чтобы запустить музыку'));}if(currentPage==='music')render();}
 function toggleMusic(){if(music.index<0){toast('Сначала добавь аудиофайлы');return;}if(music.audio.paused){music.audio.play().catch(()=>toast('Не удалось запустить этот аудиофайл'));}else music.audio.pause();}
@@ -419,6 +485,7 @@ case 'finish':finishModal();break;case 'save-workout':saveWorkout();break;case '
 case 'timer-preset':timerPreset(Number(id));break;case 'timer-toggle':timerToggle();break;case 'timer-reset':timerReset();break;
 case 'month-prev':calendarChangeMonth(-1);break;case 'month-next':calendarChangeMonth(1);break;case 'select-date':selectCalendarDate(id);break;case 'schedule':scheduleWorkout();break;case 'remove-plan':removePlan(id);break;
 case 'session-details':showSessionDetails(id);break;case 'delete-session':deleteSession(id);break;
+case 'soundcloud-search':findYouTubeTrackOnSoundCloud();break;
 case 'playlist-save':savePlaylistLink();break;case 'playlist-open':{const p=linkedPlaylists[Number(id)];if(p){if(IS_ANDROID_MUSIC)window.GymTrackAndroid.openExternal(p.url);else window.open(p.url,'_blank','noopener');}break;}case 'playlist-remove':linkedPlaylists.splice(Number(id),1);localStorage.setItem('gymtrack_playlist_links',JSON.stringify(linkedPlaylists));render();break;
 case 'native-pick':window.GymTrackAndroid.pickNativeAudio();break;case 'native-track':nativeMusicCommand('track',Number(id));break;case 'native-toggle':nativeMusicCommand('toggle');break;case 'native-next':nativeMusicCommand('next');break;case 'native-prev':nativeMusicCommand('previous');break;
 case 'music-toggle':toggleMusic();break;case 'track-next':changeTrack(1);break;case 'track-prev':changeTrack(-1);break;case 'select-track':selectTrack(Number(id));break;

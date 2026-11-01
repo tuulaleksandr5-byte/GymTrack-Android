@@ -1,9 +1,10 @@
 'use strict';
 // GymTrack Windows desktop launcher. Exercise GIFs and the entire application
 // are loaded from bundled resources, never from an external web server.
-const {app, BrowserWindow, Menu, protocol, shell, dialog} = require('electron');
+const {app, BrowserWindow, Menu, protocol, shell, dialog, ipcMain} = require('electron');
 const path = require('node:path');
 const {createAssetHandler} = require('./asset-loader.cjs');
+const {getYouTubeTitle,soundCloudSearchUrl} = require('./youtube-search.cjs');
 
 const SCHEME = 'gymtrack';
 const APP_URL = 'gymtrack://app/index.html';
@@ -21,7 +22,7 @@ function assetsFolder() {
 }
 
 const externalHosts = new Set([
-  'open.spotify.com', 'music.youtube.com', 'www.youtube.com', 'youtube.com'
+  'open.spotify.com', 'music.youtube.com', 'www.youtube.com', 'youtube.com','soundcloud.com'
 ]);
 function openApprovedExternal(rawUrl) {
   try {
@@ -42,6 +43,7 @@ function createMainWindow() {
     icon:path.join(__dirname,'build','icon.png'),
     webPreferences:{
       nodeIntegration:false,contextIsolation:true,sandbox:true,
+      preload:path.join(__dirname,'preload.cjs'),
       webSecurity:true,allowRunningInsecureContent:false,
       backgroundThrottling:false,devTools:false,
       spellcheck:false
@@ -93,6 +95,17 @@ const appMenu = [
 ];
 
 app.whenReady().then(() => {
+  ipcMain.handle('gymtrack:youtube-title',async(event,url)=>{
+    if(event.sender!==mainWindow?.webContents)return {error:'forbidden'};
+    return getYouTubeTitle(url);
+  });
+  ipcMain.handle('gymtrack:open-soundcloud',async(event,query)=>{
+    if(event.sender!==mainWindow?.webContents)return false;
+    const url=soundCloudSearchUrl(query);
+    if(!url)return false;
+    try{await shell.openExternal(url);return true;}
+    catch{return false;}
+  });
   protocol.handle(SCHEME,createAssetHandler(assetsFolder()));
   Menu.setApplicationMenu(Menu.buildFromTemplate(appMenu));
   createMainWindow();
