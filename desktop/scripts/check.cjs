@@ -26,4 +26,23 @@ try {
  fs.writeFileSync(temp,matches[0][1]);
  require('node:child_process').execFileSync(process.execPath,['--check',temp],{stdio:'inherit'});
 } finally {try{fs.unlinkSync(temp)}catch{}}
-console.log('GymTrack desktop: UI, workout features and 12 animations verified.');
+
+// Smoke test the exact protocol handler used in the Windows executable.
+// This catches the ERR_UNEXPECTED blank-window regression at build time.
+const {createAssetHandler}=require('../asset-loader.cjs');
+(async()=>{
+ const handle=createAssetHandler(base);
+ const root=await handle({url:'gymtrack://app/index.html'});
+ assert.equal(root.status,200,'Main page could not be loaded');
+ assert.match(root.headers.get('Content-Type'),/text\/html/);
+ assert.ok((await root.text()).includes('GymTrack'),'Main page body missing');
+ const gif=await handle({url:'gymtrack://app/gifs/03_incline_barbell_press.gif'});
+ assert.equal(gif.status,200,'GIF could not be loaded');
+ assert.equal(gif.headers.get('Content-Type'),'image/gif');
+ assert.ok((await gif.arrayBuffer()).byteLength>300000);
+ const missing=await handle({url:'gymtrack://app/no-such-file.html'});
+ assert.equal(missing.status,404);
+ const invalid=await handle({url:'gymtrack://app/%5cprivate.txt'});
+ assert.equal(invalid.status,400);
+ console.log('GymTrack desktop loader check passed: HTML + GIF + path protection.');
+})().catch(e=>{console.error(e);process.exitCode=1;});

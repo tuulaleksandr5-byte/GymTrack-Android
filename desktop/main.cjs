@@ -1,10 +1,9 @@
 'use strict';
 // GymTrack Windows desktop launcher. Exercise GIFs and the entire application
 // are loaded from bundled resources, never from an external web server.
-const {app, BrowserWindow, Menu, protocol, net, shell, dialog} = require('electron');
+const {app, BrowserWindow, Menu, protocol, shell, dialog} = require('electron');
 const path = require('node:path');
-const fs = require('node:fs');
-const {pathToFileURL} = require('node:url');
+const {createAssetHandler} = require('./asset-loader.cjs');
 
 const SCHEME = 'gymtrack';
 const APP_URL = 'gymtrack://app/index.html';
@@ -19,28 +18,6 @@ function assetsFolder() {
   return app.isPackaged
     ? path.join(process.resourcesPath, 'web')
     : path.resolve(__dirname, '..', 'app', 'src', 'main', 'assets');
-}
-
-function getBundledAsset(request) {
-  let parsed;
-  try { parsed = new URL(request.url); }
-  catch { return new Response('Bad URL', {status:400}); }
-  if (parsed.host !== 'app') return new Response('Forbidden', {status:403});
-  let relative;
-  try { relative = decodeURIComponent(parsed.pathname); }
-  catch { return new Response('Bad filename', {status:400}); }
-  if (relative.includes('\\') || relative.includes('\0')) {
-    return new Response('Invalid filename', {status:400});
-  }
-  const base = assetsFolder();
-  const full = path.resolve(base, '.' + relative);
-  if (full !== base && !full.startsWith(base + path.sep)) {
-    return new Response('Forbidden', {status:403});
-  }
-  try {
-    if (!fs.statSync(full).isFile()) return new Response('Not a file', {status:404});
-  } catch { return new Response('Not found', {status:404}); }
-  return net.fetch(pathToFileURL(full).toString());
 }
 
 const externalHosts = new Set([
@@ -92,7 +69,12 @@ function createMainWindow() {
     callback({cancel:!local});
   });
   mainWindow.loadURL(APP_URL).catch(error => {
-    dialog.showErrorBox('GymTrack', 'Не удалось открыть приложение: ' + error.message);
+    console.error('GymTrack application loading failed:', error);
+    const msg='Не удалось открыть GymTrack. Перезапусти приложение или установи последнюю версию.';
+    const safe='<!doctype html><html lang="ru"><meta charset="utf-8"><title>GymTrack</title>'+
+      '<body style="background:#101216;color:#eee;font:18px sans-serif;padding:32px">'+
+      '<h1 style="color:#ff753f">GymTrack</h1><p>'+msg+'</p></body></html>';
+    mainWindow.loadURL('data:text/html;charset=UTF-8,'+encodeURIComponent(safe)).catch(()=>{});
   });
 }
 
@@ -111,7 +93,7 @@ const appMenu = [
 ];
 
 app.whenReady().then(() => {
-  protocol.handle(SCHEME,getBundledAsset);
+  protocol.handle(SCHEME,createAssetHandler(assetsFolder()));
   Menu.setApplicationMenu(Menu.buildFromTemplate(appMenu));
   createMainWindow();
   app.on('activate', () => {if(BrowserWindow.getAllWindows().length===0)createMainWindow();});
