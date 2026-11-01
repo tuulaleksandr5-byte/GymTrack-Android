@@ -562,6 +562,32 @@ async function soundCloudPlay(index){
  }catch(e){toast('Не удалось открыть плеер SoundCloud');}
 }
 
+
+let soundCloudApiResults=null;
+let soundCloudApiStatus='Для внутреннего поиска нужен доступ SoundCloud API.';
+async function searchSoundCloudApi(){
+ const input=document.getElementById('scApiQuery'),q=(input?.value||'').trim().slice(0,180);
+ if(!q){toast('Введите название песни');return;}
+ if(!window.GymTrackDesktop?.soundCloudSearch){toast('API-поиск доступен только в ПК-версии');return;}
+ soundCloudApiStatus='Поиск треков SoundCloud…';soundCloudApiResults=null;render();
+ try{
+  const result=await window.GymTrackDesktop.soundCloudSearch(q);
+  soundCloudApiStatus=result.error||('Найдено треков: '+(result.tracks||[]).length);
+  soundCloudApiResults=Array.isArray(result.tracks)?result.tracks.filter(t=>t&&typeof t.url==='string').slice(0,20):null;
+ }catch(e){soundCloudApiStatus='Ошибка подключения к SoundCloud API';soundCloudApiResults=null;}
+ render();
+}
+function renderSoundCloudApiPanel(){
+ const results=soundCloudApiResults;
+ return '<section class="panel" style="padding:22px;margin-top:22px"><h2 class="section-title">SoundCloud API · поиск треков</h2>'+
+ '<p class="panel-note">Поиск по каталогу SoundCloud прямо в GymTrack. Для доступа требуются API-ключи приложения SoundCloud. Треки открываются в официальном проигрывателе SoundCloud.</p>'+
+ '<div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:13px"><input id="scApiQuery" type="text" maxlength="180" placeholder="Название песни или исполнитель" aria-label="Поиск SoundCloud" style="flex:1;min-width:180px;background:#1b2027;color:white;border:1px solid #42464f;border-radius:10px;padding:12px"/>'+
+ '<button class="btn btn-primary" data-action="sc-api-search">Поиск через API</button></div>'+
+ '<p class="panel-note" style="margin-top:10px" aria-live="polite">'+escapeHTML(soundCloudApiStatus)+'</p>'+
+ (results?'<div class="track-list">'+results.map((t,i)=>'<button class="track-item" data-action="sc-api-open" data-id="'+i+'"><span class="track-name"><strong>'+escapeHTML(t.title)+'</strong><small>'+escapeHTML(t.artist)+'</small></span>Открыть ↗</button>').join('')+'</div>':'')+
+ '<p class="panel-note" style="margin-top:8px">Только разрешённые действия через официальный API. Защищённые записи не скачиваются.</p></section>';
+}
+
 function playlistLinksSection(){
  return `<section class="panel" style="margin-top:24px;padding:22px">
  <div class="section-head"><div><h2 class="section-title">Плейлисты YouTube и Spotify</h2>
@@ -576,6 +602,7 @@ function playlistLinksSection(){
  <button class="btn btn-subtle" data-action="playlist-remove" data-id="${i}" aria-label="Удалить ссылку">✕</button>
  </div>`).join(''):'<p class="panel-note">Пока нет сохранённых ссылок.</p>'}
  ${youtubeSoundcloudPanel()}
+ ${renderSoundCloudApiPanel()}
  ${soundCloudApiPanel()}
  <p class="panel-note" style="margin-top:14px">Это закладки, а не скачивание песен. Для офлайн-прослушивания музыки используй загрузку в официальных приложениях Spotify Premium или YouTube Music Premium. Такие загрузки нельзя перенести в GymTrack.</p>
  </section>`;
@@ -663,6 +690,8 @@ case 'sc-disconnect':soundCloudDisconnect();break;
 case 'sc-search':soundCloudSearch();break;
 case 'sc-play':soundCloudPlay(Number(id));break;
 case 'sc-search-youtube':if(youtubeSoundcloudSearch?.title)soundCloudSearch(youtubeSoundcloudSearch.title);break;
+case 'sc-api-search':searchSoundCloudApi();break;
+case 'sc-api-open':{const track=soundCloudApiResults?.[Number(id)];if(track){if(window.GymTrackAndroid?.openExternal)window.GymTrackAndroid.openExternal(track.url);else window.open(track.url,'_blank','noopener,noreferrer');}break;}
 case 'playlist-save':savePlaylistLink();break;case 'playlist-open':{const p=linkedPlaylists[Number(id)];if(p){if(IS_ANDROID_MUSIC)window.GymTrackAndroid.openExternal(p.url);else window.open(p.url,'_blank','noopener');}break;}case 'playlist-remove':linkedPlaylists.splice(Number(id),1);localStorage.setItem('gymtrack_playlist_links',JSON.stringify(linkedPlaylists));render();break;
 case 'native-pick':window.GymTrackAndroid.pickNativeAudio();break;case 'native-track':nativeMusicCommand('track',Number(id));break;case 'native-toggle':nativeMusicCommand('toggle');break;case 'native-next':nativeMusicCommand('next');break;case 'native-prev':nativeMusicCommand('previous');break;
 case 'music-toggle':toggleMusic();break;case 'track-next':changeTrack(1);break;case 'track-prev':changeTrack(-1);break;case 'select-track':selectTrack(Number(id));break;

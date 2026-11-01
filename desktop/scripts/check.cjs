@@ -120,3 +120,9 @@ const soundCloudTests=async()=>{
  console.log('SoundCloud: secure OAuth and in-app search tests passed.');
 };
 soundCloudTests().catch(e=>{console.error(e);process.exitCode=1;});
+
+const soundCloud=require('../soundcloud-api.cjs');
+assert.equal(soundCloud.validateText(' test '),'test');
+assert.equal(soundCloud.isConfigured(),Boolean(process.env.SOUNDCLOUD_CLIENT_ID&&process.env.SOUNDCLOUD_CLIENT_SECRET));
+assert.ok(html.includes('function renderSoundCloudApiPanel'));
+console.log('SoundCloud API interface verified');

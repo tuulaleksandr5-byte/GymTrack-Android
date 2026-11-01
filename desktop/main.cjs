@@ -8,6 +8,7 @@ const {SoundCloudApi,soundCloudLink}=require('./soundcloud-api.cjs');
 const scApi=new SoundCloudApi();
 const {createAssetHandler} = require('./asset-loader.cjs');
 const {lookupYoutubeTitle} = require('./youtube-title.cjs');
+const SoundCloudAPI=require('./soundcloud-api.cjs');
 const {getYouTubeTitle,soundCloudSearchUrl} = require('./youtube-search.cjs');
 
 const SCHEME = 'gymtrack';
@@ -174,6 +175,8 @@ app.whenReady().then(() => {
     try{await shell.openExternal(url);return true;}
     catch{return false;}
   });
+  ipcMain.handle('gymtrack:sc-status',event=>event.sender===mainWindow?.webContents?{configured:SoundCloudAPI.isConfigured()}:{configured:false});
+  ipcMain.handle('gymtrack:sc-search',(event,q)=>event.sender===mainWindow?.webContents?SoundCloudAPI.searchTracks(q):{error:'Недоступно'});
   protocol.handle(SCHEME,createAssetHandler(assetsFolder()));
   Menu.setApplicationMenu(Menu.buildFromTemplate(appMenu));
   createMainWindow();
