@@ -92,3 +92,31 @@ const assertYoutube=async()=>{
   console.log('YouTube to SoundCloud metadata lookup tested safely.');
 };
 assertYoutube().catch(e=>{console.error(e);process.exitCode=1;});
+
+const {SoundCloudApi,soundCloudLink}=require('../soundcloud-api.cjs');
+const soundCloudTests=async()=>{
+ assert.equal(soundCloudLink('https://soundcloud.com/artist/test-track'),'https://soundcloud.com/artist/test-track');
+ assert.equal(soundCloudLink('https://soundcloud.com.evil.test/artist/test-track'),null);
+ assert.equal(soundCloudLink('http://soundcloud.com/artist/test-track'),null);
+ let authCalls=0,searchCalls=0;
+ const mock=async(url,opts)=>{
+  if(url.includes('/oauth/token')){
+   authCalls++;assert.equal(opts.method,'POST');
+   assert.match(opts.headers.Authorization||'','Basic ');
+   return {ok:true,json:async()=>({access_token:'test-token',expires_in:3600,refresh_token:'refresh-token'})};
+  }
+  searchCalls++;
+  assert.equal(new URL(url).origin,'https://api.soundcloud.com');
+  assert.match(opts.headers.Authorization,/^OAuth test-token$/);
+  return {ok:true,json:async()=>({collection:[{id:123,title:'Test Track',permalink_url:'https://soundcloud.com/artist/test-track',user:{username:'Artist'},duration:120000}]})};
+ };
+ const api=new SoundCloudApi(mock);
+ assert.deepEqual(await api.validate('client-test','secret-test'),{connected:true});
+ const a=await api.search('tracks','test');
+ assert.equal(a.results.length,1);assert.equal(a.results[0].title,'Test Track');
+ const b=await api.search('playlists','test');
+ assert.equal(b.results.length,1);assert.equal(authCalls,1);assert.equal(searchCalls,2);
+ const bad=await api.search('invalid','test');assert.ok(bad.error);
+ console.log('SoundCloud: secure OAuth and in-app search tests passed.');
+};
+soundCloudTests().catch(e=>{console.error(e);process.exitCode=1;});
