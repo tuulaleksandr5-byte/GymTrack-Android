@@ -93,8 +93,49 @@ const assertYoutube=async()=>{
 };
 assertYoutube().catch(e=>{console.error(e);process.exitCode=1;});
 
-const soundCloud=require('../soundcloud-api.cjs');
-assert.equal(soundCloud.validateText(' test '),'test');
-assert.equal(soundCloud.isConfigured(),Boolean(process.env.SOUNDCLOUD_CLIENT_ID&&process.env.SOUNDCLOUD_CLIENT_SECRET));
-assert.ok(html.includes('function renderSoundCloudApiPanel'));
-console.log('SoundCloud API interface verified');
+
+// SoundCloud integration contract, including credential validation and sanitized links.
+const {SoundCloudApi,soundCloudLink}=require('../soundcloud-api.cjs');
+assert.equal(typeof SoundCloudApi,'function','SoundCloudApi constructor must exist');
+assert.equal(soundCloudLink('https://soundcloud.com/artist/track'),'https://soundcloud.com/artist/track');
+assert.equal(soundCloudLink('https://soundcloud.com.evil.test/artist/track'),null);
+assert.equal(soundCloudLink('http://soundcloud.com/artist/track'),null);
+(async()=>{
+ let tokenCalls=0,searchCalls=0;
+ const fakeFetch=async(url,options)=>{
+  if(String(url).includes('/oauth/token')){
+   tokenCalls++;
+   assert.equal(options.method,'POST');
+   assert.match(options.headers.Authorization,/^Basic /);
+   return {ok:true,json:async()=>({access_token:'test-token',expires_in:3600,refresh_token:'refresh-token'})};
+  }
+  searchCalls++;
+  assert.equal(new URL(url).origin,'https://api.soundcloud.com');
+  assert.match(options.headers.Authorization,/^OAuth test-token$/);
+  return {ok:true,json:async()=>({collection:[{id:123,title:'Example',permalink_url:'https://soundcloud.com/artist/track',user:{username:'Artist'},duration:10000}]})};
+ };
+ const api=new SoundCloudApi(fakeFetch);
+ assert.equal(api.hasCredentials(),false);
+ assert.deepEqual(await api.validate('example-id','example-secret'),{connected:true});
+ const result=await api.search('tracks','example');
+ assert.equal(result.results.length,1);
+ assert.equal(result.results[0].artist,'Artist');
+ assert.equal(tokenCalls,1);
+ assert.equal(searchCalls,1);
+ api.clear();
+ assert.equal(api.hasCredentials(),false);
+ console.log('SoundCloud API constructor, OAuth, search and credentials verified.');
+})().catch(error=>{console.error(error);process.exitCode=1;});
+// Every relative dependency used by the app must be shipped in the Windows EXE.
+const desktop=path.join(__dirname,'..');
+const pkg=JSON.parse(fs.readFileSync(path.join(desktop,'package.json'),'utf8'));
+const mainText=fs.readFileSync(path.join(desktop,'main.cjs'),'utf8');
+for(const match of mainText.matchAll(/require\(['"]\.\/([^'"]+)['"]\)/g)){
+ const filename=match[1];
+ assert(fs.existsSync(path.join(desktop,filename)),'Missing main process dependency: '+filename);
+ assert(pkg.build.files.includes(filename),'Dependency omitted from packaged EXE: '+filename);
+}
+assert(pkg.build.files.includes('preload.cjs'),'Electron preload omitted from packaged EXE');
+assert(html.includes('function soundCloudApiPanel'),'SoundCloud API UI missing');
+assert(!html.includes('function renderSoundCloudApiPanel'),'Duplicate SoundCloud API UI detected');
+console.log('Windows packaging dependencies and SoundCloud UI verified.');

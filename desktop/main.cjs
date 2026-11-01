@@ -7,8 +7,6 @@ const fs = require('node:fs');
 const {SoundCloudApi,soundCloudLink}=require('./soundcloud-api.cjs');
 const scApi=new SoundCloudApi();
 const {createAssetHandler} = require('./asset-loader.cjs');
-const {lookupYoutubeTitle} = require('./youtube-title.cjs');
-const SoundCloudAPI=require('./soundcloud-api.cjs');
 const {getYouTubeTitle,soundCloudSearchUrl} = require('./youtube-search.cjs');
 
 const SCHEME = 'gymtrack';
@@ -27,7 +25,7 @@ function assetsFolder() {
 }
 
 const externalHosts = new Set([
-  'open.spotify.com', 'music.youtube.com', 'www.youtube.com', 'youtube.com', 'soundcloud.com', 'www.soundcloud.com','soundcloud.com'
+  'open.spotify.com', 'music.youtube.com', 'www.youtube.com', 'youtube.com', 'soundcloud.com', 'www.soundcloud.com'
 ]);
 function openApprovedExternal(rawUrl) {
   try {
@@ -97,7 +95,6 @@ function createMainWindow() {
     webPreferences:{
       preload:path.join(__dirname,'preload.cjs'),
       nodeIntegration:false,contextIsolation:true,sandbox:true,
-      preload:path.join(__dirname,'preload.cjs'),
       webSecurity:true,allowRunningInsecureContent:false,
       backgroundThrottling:false,devTools:false,
       spellcheck:false
@@ -175,8 +172,6 @@ app.whenReady().then(() => {
     try{await shell.openExternal(url);return true;}
     catch{return false;}
   });
-  ipcMain.handle('gymtrack:sc-status',event=>event.sender===mainWindow?.webContents?{configured:SoundCloudAPI.isConfigured()}:{configured:false});
-  ipcMain.handle('gymtrack:sc-search',(event,q)=>event.sender===mainWindow?.webContents?SoundCloudAPI.searchTracks(q):{error:'Недоступно'});
   protocol.handle(SCHEME,createAssetHandler(assetsFolder()));
   Menu.setApplicationMenu(Menu.buildFromTemplate(appMenu));
   createMainWindow();
